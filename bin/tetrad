@@ -1,0 +1,39 @@
+#!/bin/bash
+#compress new acelp .out files into ogg --sq5bpf
+export PATH=$PATH:/tetra/bin
+TDIR=/tetra/in
+ODIR=/tetra/out
+while : ; do
+while read a
+do
+echo "#################################"
+EXDATE=`echo "$a"|sed -e 's/.*traffic_\([0-9]*\)_.*/\1/'`
+DDIR="$ODIR/$EXDATE"
+FNTMP=`basename "$a" .out`
+FNAME="$DDIR/$FNTMP"
+mkdir -p $DDIR
+date
+#echo $a $EXDATE $FNAME
+#               ls -al $a
+TMPOUT="${FNAME}.out"
+TMPF="${FNAME}.codec"
+PCMF="${FNAME}.raw"
+WAVF="${FNAME}.wav"
+OGGF="${FNAME}.ogg"
+
+mv $a $TMPOUT
+cdecoder $TMPOUT $TMPF
+sdecoder $TMPF $PCMF
+sox -r 8k -e signed -b 16 $PCMF  $WAVF
+oggenc $WAVF
+
+rm "$TMPOUT" "$TMPF" "$PCMF" "$WAVF"
+echo 
+
+
+done < <( find $TDIR -type f -mmin +2 )
+
+
+	sleep 60
+	done
+

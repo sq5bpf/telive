@@ -1,0 +1,4 @@
+#!/bin/sh
+#play acelp .out files
+cat $* | /tetra/bin/cdecoder /dev/stdin /dev/stdout | /tetra/bin/sdecoder /dev/stdin /dev/stdout | aplay -fS16_LE
+

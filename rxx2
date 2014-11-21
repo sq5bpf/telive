@@ -1,0 +1,7 @@
+#!/bin/sh
+ulimit -c unlimited
+export PATH=$PATH:/tetra/bin
+export TETRA_OUTDIR=/tetra2/in
+export TETRA_LOGFILE=/tetra2/log/telive.log
+export TETRA_PORT=7380
+./telive7
