@@ -5,4 +5,4 @@ if [ ! -d $T ]; then
 	exit
 fi
 mkdir $T/in $T/out $T/log $T/tmp
-
+cp bin/* $T/bin
