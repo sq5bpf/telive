@@ -4,4 +4,4 @@ export PATH=$PATH:/tetra/bin
 export TETRA_OUTDIR=/tetra/in
 export TETRA_LOGFILE=/tetra/log/telive.log
 export TETRA_PORT=7379
-./telive7
+./telive
