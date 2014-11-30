@@ -1,9 +1,10 @@
-/* telive v0.7 - tetra live monitor
+/* telive v0.8 - tetra live monitor
  * (c) 2014 Jacek Lipkowski <sq5bpf@lipkowski.org>
  * Licensed under GPLv3, please read the file LICENSE, which accompanies 
  * the telive program sources 
  *
  * Changelog:
+ * v0.8 - code cleanups, add the verbose option, display for text sds in the status window  --sq5bpf
  * v0.7 - initial public release --sq5bpf
  *
  *
@@ -25,7 +26,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <stdlib.h>
-#include<string.h>
+#include <string.h>
 #include <sys/select.h>
 #include <sys/time.h>
 #include <time.h>
@@ -56,7 +57,7 @@ char def_logfile[100]="telive.log";
 	 _a > _b ? _a : _b; })
 
 
-
+int verbose=0;
 WINDOW *msgwin=0;
 WINDOW *statuswin=0;
 WINDOW *mainwin=0;
@@ -113,7 +114,7 @@ void appendlog(char *msg) {
 }
 
 
-int clearopisy()
+void clearopisy()
 {
 	struct opisy *ptr,*ptr2;
 	ptr=opisssi;
@@ -176,6 +177,7 @@ int initopis()
 
 	fclose(g);
 	//	printw("[3]"); refresh();
+	return(1);
 }
 
 const char nop[2]="-\0";
@@ -217,10 +219,13 @@ int initcur() {
 	initscr();
 	start_color();
 	cbreak();
-	//	resizeterm(60,203);
 	init_pair(1, COLOR_RED, COLOR_BLUE);
-	init_pair(2, COLOR_BLACK, COLOR_BLUE);
-	init_pair(3, COLOR_BLACK, COLOR_GREEN);
+	/* test for now if yellow foreground is more readable? --sq5bpf
+	 * init_pair(2, COLOR_BLACK, COLOR_BLUE);
+	 init_pair(3, COLOR_BLACK, COLOR_GREEN);
+	 */
+	init_pair(2, COLOR_YELLOW, COLOR_BLUE);
+	init_pair(3, COLOR_RED, COLOR_GREEN);
 	init_pair(4, COLOR_WHITE, COLOR_GREEN);
 	init_pair(5, COLOR_BLACK, COLOR_YELLOW);
 	clear();
@@ -256,19 +261,20 @@ int initcur() {
 	wrefresh(mainwin);
 	wrefresh(msgwin);
 	wrefresh(statuswin);
+	return(1);
 }
 
-int updopis()
+void updopis()
 {
 	wmove(mainwin,0,30);
 	wattron(mainwin,COLOR_PAIR(4)|A_BOLD);
 	wprintw(mainwin,"MCC:%5i MNC:%5i ColourCode:%3i Down:%3.4fMHz Up:%3.4fMHz",netinfo.mcc,netinfo.mnc,netinfo.colour_code,netinfo.dl_freq/1000000.0,netinfo.ul_freq/1000000.0);
 	wattroff(mainwin,COLOR_PAIR(4)|A_BOLD);
-	wprintw(mainwin," mutessi:%i alldump:%i mute:%i record:%i log:%i       ",mutessi,alldump,ps_mute,ps_record,do_log);
+	wprintw(mainwin," mutessi:%i alldump:%i mute:%i record:%i log:%i verbose:%i",mutessi,alldump,ps_mute,ps_record,do_log,verbose);
 	ref=1;
 }
 
-int updidx(int idx) {
+void updidx(int idx) {
 	char opis[40];
 	int i;
 	int row=getr(idx);
@@ -306,14 +312,14 @@ int addssi(int idx,int ssi)
 	for(i=0;i<3;i++) {
 		if (ssis[idx].ssi[i]==ssi) {
 			ssis[idx].ssi_time[i]=time(0);
-			return(0);
+			return(1);
 		}
 	}
 	for(i=0;i<3;i++) {
 		if (!ssis[idx].ssi[i]) {
 			ssis[idx].ssi[i]=ssi;
 			ssis[idx].ssi_time[i]=time(0);
-			return(0);
+			return(1);
 		}
 	}	
 
@@ -325,7 +331,7 @@ int addssi(int idx,int ssi)
 	ssis[idx].ssi[2]=ssi;
 	ssis[idx].ssi_time[2]=time(0);
 	ssis[idx].active=1;
-
+	return(1);
 }
 
 int addssi2(int idx,int ssi,int i)
@@ -334,6 +340,7 @@ int addssi2(int idx,int ssi,int i)
 	ssis[idx].ssi[i]=ssi;
 	ssis[idx].ssi_time[i]=time(0);
 	ssis[idx].active=1;
+	return(0);
 }
 
 int releasessi(int ssi)
@@ -349,6 +356,7 @@ int releasessi(int ssi)
 			}
 		}
 	}
+	return(0);
 }
 
 int findtoplay(int first)
@@ -358,20 +366,21 @@ int findtoplay(int first)
 	for (i=first;i<MAXUS;i++) {
 		if ((ssis[i].active)&&(!ssis[i].encr)) {
 			curplayingidx=i;
-			wprintw(statuswin,"NOW PLAYING %i\n",i);
+			if (verbose>0) wprintw(statuswin,"NOW PLAYING %i\n",i);
 			ref=1;
-			return(0);
+			return(1);
 		}
 	}
 	for (i=0;i<first;i++) {
 		if ((ssis[i].active)&&(!ssis[i].encr)) {
 			curplayingidx=i;
-			wprintw(statuswin,"NOW PLAYING %i\n",i);
+			if (verbose>0) wprintw(statuswin,"NOW PLAYING %i\n",i);
 			ref=1;
-			return(0);
+			return(1);
 		}
 	}
 	curplayingidx=0;
+	return(0); 
 }
 
 void timeout_ssis(time_t t)
@@ -441,7 +450,7 @@ void timeout_rec(time_t t)
 			ssis[i].curfile[0]=0;
 			ssis[i].active=0;
 			updidx(i);
-			wprintw(statuswin,"timeout rec %s\n",tmpfile);
+			if(verbose>1) wprintw(statuswin,"timeout rec %s\n",tmpfile);
 			ref=1;
 		}
 	}
@@ -450,9 +459,9 @@ void timeout_rec(time_t t)
 void refresh_scr()
 {
 	ref=0;
-	if (mainwin) wrefresh(mainwin);
-	if (statuswin) wrefresh(statuswin);
-	if (msgwin) wrefresh(msgwin);
+	wrefresh(mainwin);
+	wrefresh(statuswin);
+	wrefresh(msgwin);
 }
 
 void tickf ()
@@ -515,17 +524,25 @@ void keyf()
 			alldump=!alldump;
 			updopis();
 			break;
+		case 'v':
+			if (verbose) verbose--;
+			updopis();
+			break;
+		case 'V':
+			if (verbose<4) verbose++;
+			updopis();
+			break;
 		case 'r': /* refresh screen */
-			if (statuswin)	redrawwin(statuswin);
-			if (msgwin)		redrawwin(msgwin);
-			if (mainwin)	redrawwin(mainwin);
+			redrawwin(statuswin);
+			redrawwin(msgwin);
+			redrawwin(mainwin);
 			break;
 		case 's': /* stop current playing, find another one */
 			if (curplayingidx)
 			{
 				ssis[curplayingidx].active=0;
 				ssis[curplayingidx].play=0;
-				wprintw(statuswin,"STOP PLAYING %i\n",curplayingidx);
+				if (verbose>0) wprintw(statuswin,"STOP PLAYING %i\n",curplayingidx);
 				updidx(curplayingidx);
 				curplayingidx=0;
 				findtoplay(curplayingidx+1);
@@ -535,11 +552,11 @@ void keyf()
 		case '?':
 			wprintw(statuswin,"HELP: ");
 			wprintw(statuswin,"m-mutessi  M-mute   R-record   a-alldump  ");
-			wprintw(statuswin,"r-refresh  s-stop play  l-log\n");
+			wprintw(statuswin,"r-refresh  s-stop play  l-log v/V-less/more verbose\n");
 			wrefresh(statuswin);
 			break;
 		default: 
-			wprintw(statuswin,"key %c\n",r);
+			wprintw(statuswin,"unknown key %c\n",r);
 			wrefresh(statuswin);
 	}
 }
@@ -572,7 +589,6 @@ int cmpfunc(char *c,char *func)
 
 int parsestat(char *c)
 {
-	char *a;
 	char *func;
 	int idtype=0;
 	int ssi=0;
@@ -588,6 +604,8 @@ int parsestat(char *c)
 	uint8_t tmpcolour_code;
 	uint32_t tmpdlf,tmpulf;
 	int rxid;
+	int callingssi,calledssi;
+	char *sdsbegin;
 
 	func=getptr(c,"FUNC:");
 	idtype=getptrint(c,"IDT:",10);
@@ -599,7 +617,7 @@ int parsestat(char *c)
 	if (cmpfunc(func,"BURST")) {
 		last_burst=10;
 		/* never log bursts */
-		return;
+		return(0);
 	}
 
 	if (cmpfunc(func,"NETINFO")) {
@@ -625,7 +643,18 @@ int parsestat(char *c)
 		//addssi2(usage,ssi,0);
 		addssi(usage,ssi);
 		updidx(usage);
+
 	}
+
+	if ((cmpfunc(func,"SDSDEC"))&&(strstr(c,"Text")))
+	{ 
+		callingssi=getptrint(c,"CallingSSI:",10);
+		calledssi=getptrint(c,"CalledSSI:",10);
+		sdsbegin=strstr(c,"DATA:");
+		wprintw(statuswin,"SDS %i->%i %s\n",callingssi,calledssi,sdsbegin);
+		ref=1;
+	}
+
 
 	if (idtype==ADDR_TYPE_SSI_USAGE) {
 		if (cmpfunc(func,"D-SETUP"))
@@ -647,7 +676,7 @@ int parsestat(char *c)
 		/* don't use releasessi for now, as we can have the same ssi 
 		 * on different usage identifiers. one day this should be 
 		 * done properly with notif. ids */
-//		releasessi(ssi);
+		//		releasessi(ssi);
 	}
 
 
@@ -660,11 +689,11 @@ int parsestat(char *c)
 		sprintf(tmpstr2,"%s %s",tmpstr,c);
 
 		wprintw(msgwin,"%s\n",tmpstr2);
-		sprintf(prevtmsg,c);
+		strncpy(prevtmsg,c,sizeof(prevtmsg)-1);
 		if (do_log) appendlog(tmpstr2);
 	}
 
-
+	return(0);
 
 }
 
@@ -674,12 +703,11 @@ int parsetraffic(unsigned char *buf)
 	unsigned char *c;
 	int usage;
 	int len=1380;
-	char tmpstr[80];
 	time_t tt=time(0);
 	FILE *f;
 	int rxid;
-	usage=getptrint(buf,"TRA",16);
-	rxid=getptrint(buf,"RX",16);
+	usage=getptrint((char *)buf,"TRA",16);
+	rxid=getptrint((char *)buf,"RX",16);
 	if (!usage) return(0);
 	c=buf+6;
 
@@ -691,7 +719,7 @@ int parsetraffic(unsigned char *buf)
 	//	wprintw(statuswin,"PLAY %i\n",usage);
 	//	ref=1;
 
-	if ((strncmp(buf,"TRA",3)==0)&&(!ssis[usage].encr)) {
+	if ((strncmp((char *)buf,"TRA",3)==0)&&(!ssis[usage].encr)) {
 		if ((mutessi)&&(!ssis[usage].ssi[0])&&(!ssis[usage].ssi[1])&&(!ssis[usage].ssi[2])) return(0); //olej jak nie znamy ssi
 		/*	if (!curplayingidx) {
 			curplayingidx=usage;
@@ -716,7 +744,7 @@ int parsetraffic(unsigned char *buf)
 			 * change the file name */
 			strftime(ssis[usage].curfiletime,32,"%Y%m%d_%H%M%S",localtime(&tt));
 			sprintf(ssis[usage].curfile,"%s/traffic_%i.tmp",outdir,usage);
-			wprintw(statuswin,"newfile %s\n",ssis[usage].curfile);
+			if (verbose>1) wprintw(statuswin,"newfile %s\n",ssis[usage].curfile);
 			ref=1;
 		}
 		if (strlen(ssis[usage].curfile))
@@ -732,17 +760,18 @@ int parsetraffic(unsigned char *buf)
 
 	}
 
-
+	return(0);
 }
 
 int main(void)
 {
 	struct sockaddr_in si_me, si_other;
-	int s, i, slen=sizeof(si_other);
-	char buf[BUFLEN];
-	char *c,*d,*e;
+	int s;
+	socklen_t slen=sizeof(si_other);
+	unsigned char buf[BUFLEN];
+	char *c,*d;
 	int len;
-	int ssi,ssi2,idx,encr;
+	//int ssi,ssi2,idx,encr;
 	int tport;
 	//system("resize -s 60 203"); /* this blocks on some xterms, no idea why */
 	memset(zerobuf,0,sizeof(zerobuf));
@@ -821,11 +850,11 @@ int main(void)
 			if (len==-1)
 				diep("recvfrom()");
 
-			c=strstr(buf,"TETMON_begin");
+			c=strstr((char *)buf,"TETMON_begin");
 			if (c)
 			{
 				c=c+13;
-				d=strstr(buf,"TETMON_end");
+				d=strstr((char *)buf,"TETMON_end");
 				if (d) {
 					*d=0;
 					parsestat(c);
