@@ -4,4 +4,8 @@ export PATH=$PATH:/tetra/bin
 export TETRA_OUTDIR=/tetra/in
 export TETRA_LOGFILE=/tetra/log/telive.log
 export TETRA_PORT=7379
+#export TETRA_KEYS=lR #example: enable logging and recording
+#export TETRA_SSI_FILTER=1000 #example: match 1000
+#export TETRA_SSI_FILTER=10?? #example: match 1000-1099
+#export TETRA_SSI_FILTER='+(1000|[234]0??|?????)' #example: match 1000, 2000-2099, 3000-3099, 4000-4099, and any 5 digit number, you still have to enable the filter with f
 ./telive

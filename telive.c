@@ -1,9 +1,10 @@
-/* telive v0.8 - tetra live monitor
- * (c) 2014 Jacek Lipkowski <sq5bpf@lipkowski.org>
+/* telive v0.9 - tetra live monitor
+ * (c) 2014-2015 Jacek Lipkowski <sq5bpf@lipkowski.org>
  * Licensed under GPLv3, please read the file LICENSE, which accompanies 
  * the telive program sources 
  *
  * Changelog:
+ * v0.9 - add TETRA_KEYS, add option to filter playback, fixed crash on problems playing, report when the network parameters change too quickly --sq5bpf
  * v0.8 - code cleanups, add the verbose option, display for text sds in the status window  --sq5bpf
  * v0.7 - initial public release --sq5bpf
  *
@@ -15,6 +16,7 @@
  */
 
 
+#include <fnmatch.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <stdio.h>
@@ -30,13 +32,15 @@
 #include <sys/select.h>
 #include <sys/time.h>
 #include <time.h>
+#include <signal.h>
 
 #include "telive.h"
+
+#define TELIVE_VERSION "0.9"
 
 #define BUFLEN 4096
 #define NPACK 10
 #define PORT 7379
-#define OPISY "opisy"
 
 /******* definitions *******/
 #define REC_TIMEOUT 30 /* after how long we stop to record a usage identifier */
@@ -50,6 +54,10 @@ char *outdir;
 char def_outdir[100]="/tetra/in";
 char *logfile;
 char def_logfile[100]="telive.log";
+char *ssifile;
+char def_ssifile[100]="ssi_descriptions";
+char ssi_filter[100];
+int use_filter=0;
 
 #define max(a,b) \
 	({ __typeof__ (a) _a = (a); \
@@ -70,6 +78,9 @@ struct {
 	uint8_t colour_code;
 	uint32_t dl_freq;
 	uint32_t ul_freq;
+	uint16_t la;
+	time_t last_change;
+	uint32_t changes;
 } netinfo;
 
 
@@ -109,7 +120,7 @@ int last_burst=0;
 void appendlog(char *msg) {
 	FILE *f;
 	f=fopen(logfile,"ab");
-	fprintf(f,"%s\n",msg);
+	if (f) fprintf(f,"%s\n",msg);
 	fclose(f);
 }
 
@@ -134,7 +145,7 @@ time_t ostopis=0;
 int newopis()
 {
 	struct stat st;
-	if (stat(OPISY,&st)) return(0);
+	if (stat(ssifile,&st)) return(0);
 
 	if (st.st_mtime>ostopis) {
 		ostopis=st.st_mtime;
@@ -153,7 +164,7 @@ int initopis()
 	//	printw("[1]"); refresh();
 	clearopisy();
 	//	printw("[2]"); refresh();
-	g=fopen(OPISY,"r");
+	g=fopen(ssifile,"r");
 	while(!feof(g))
 	{
 		if (!fgets(str,sizeof(str),g)) break;
@@ -216,14 +227,11 @@ int getcl(int idx)
 #define STATUSLINES 7
 int initcur() {
 	int idx;
+	int maxx,maxy;
 	initscr();
 	start_color();
 	cbreak();
 	init_pair(1, COLOR_RED, COLOR_BLUE);
-	/* test for now if yellow foreground is more readable? --sq5bpf
-	 * init_pair(2, COLOR_BLACK, COLOR_BLUE);
-	 init_pair(3, COLOR_BLACK, COLOR_GREEN);
-	 */
 	init_pair(2, COLOR_YELLOW, COLOR_BLUE);
 	init_pair(3, COLOR_RED, COLOR_GREEN);
 	init_pair(4, COLOR_WHITE, COLOR_GREEN);
@@ -235,18 +243,22 @@ int initcur() {
 	wattron(msgwin,COLOR_PAIR(2));
 	wbkgdset(msgwin,COLOR_PAIR(2));
 	wclear(msgwin);
-	wprintw(msgwin,"msgwin\n");
+	wprintw(msgwin,"Message window\n");
 	scrollok(msgwin,TRUE);
 
 	statuswin=newwin(STATUSLINES+1,COLS/2,LINES-STATUSLINES,COLS/2+1);
 	wattron(statuswin,COLOR_PAIR(3));
 	wbkgdset(statuswin,COLOR_PAIR(3));
 	wclear(statuswin);
-	wprintw(statuswin,"statuswin\n");
+	wprintw(statuswin,"####  Press ? for keystroke help  ####\n");
+	getmaxyx(stdscr,maxy,maxx);
+	if ((maxx!=203)||(maxy!=60)) {
+		wprintw(statuswin,"\nWARNING: The terminal size is %ix%i, but it should be 203x60\nThe program will still work, but the display may be mangled\n\n",maxx,maxy);
+	}
 	scrollok(statuswin,TRUE);
 
 	wattron(mainwin,A_BOLD);
-	wprintw(mainwin,"** SQ5BPF TETRA Monitor **");
+	wprintw(mainwin,"** SQ5BPF TETRA Monitor %s **",TELIVE_VERSION);
 	wattroff(mainwin,A_BOLD);
 
 
@@ -266,11 +278,19 @@ int initcur() {
 
 void updopis()
 {
-	wmove(mainwin,0,30);
+	wmove(mainwin,0,32);
 	wattron(mainwin,COLOR_PAIR(4)|A_BOLD);
-	wprintw(mainwin,"MCC:%5i MNC:%5i ColourCode:%3i Down:%3.4fMHz Up:%3.4fMHz",netinfo.mcc,netinfo.mnc,netinfo.colour_code,netinfo.dl_freq/1000000.0,netinfo.ul_freq/1000000.0);
+	wprintw(mainwin,"MCC:%5i MNC:%5i ColourCode:%3i Down:%3.4fMHz Up:%3.4fMHz LA:%5i",netinfo.mcc,netinfo.mnc,netinfo.colour_code,netinfo.dl_freq/1000000.0,netinfo.ul_freq/1000000.0,netinfo.la);
 	wattroff(mainwin,COLOR_PAIR(4)|A_BOLD);
 	wprintw(mainwin," mutessi:%i alldump:%i mute:%i record:%i log:%i verbose:%i",mutessi,alldump,ps_mute,ps_record,do_log,verbose);
+	switch(use_filter)
+	{
+		case 0:	wprintw(mainwin," no filter"); break;
+		case  1:	wprintw(mainwin," Filter ON"); break;
+		case -1:	wprintw(mainwin," Inv. Filt"); break;
+	}
+	wprintw(mainwin," [%s] ",ssi_filter); 
+
 	ref=1;
 }
 
@@ -343,6 +363,7 @@ int addssi2(int idx,int ssi,int i)
 	return(0);
 }
 
+
 int releasessi(int ssi)
 {
 	int i,j;
@@ -359,12 +380,42 @@ int releasessi(int ssi)
 	return(0);
 }
 
+/* check if an SSI matches the filter expression */
+int matchssi(int ssi) 
+{
+	int r;
+	char ssistr[16];
+	sprintf(ssistr,"%i",ssi);
+	if (!ssi) return(0);
+	if (strlen(ssi_filter)==0) return(1); 
+	r=fnmatch((char *)&ssi_filter,(char *)&ssistr,FNM_EXTMATCH);
+	return(!r);
+}
+
+/* check if any SSIs for this usage identifier match the filter expression */
+int matchidx(int idx)
+{
+	int i;
+	int j=0;
+	if (!use_filter) return (1);
+	for(i=0;i<3;i++) {
+		if (matchssi(ssis[idx].ssi[i])) { 
+			j=1; 
+			break; 
+		}
+	}
+	if (use_filter==-1) j=!j;
+	return(j);
+}
+
 int findtoplay(int first)
 {
 	int i;
+	int j;
 	if (curplayingidx) return(0);
+
 	for (i=first;i<MAXUS;i++) {
-		if ((ssis[i].active)&&(!ssis[i].encr)) {
+		if ((ssis[i].active)&&(!ssis[i].encr)&&(matchidx(i))) {
 			curplayingidx=i;
 			if (verbose>0) wprintw(statuswin,"NOW PLAYING %i\n",i);
 			ref=1;
@@ -372,7 +423,7 @@ int findtoplay(int first)
 		}
 	}
 	for (i=0;i<first;i++) {
-		if ((ssis[i].active)&&(!ssis[i].encr)) {
+		if ((ssis[i].active)&&(!ssis[i].encr)&&(matchidx(i))) {
 			curplayingidx=i;
 			if (verbose>0) wprintw(statuswin,"NOW PLAYING %i\n",i);
 			ref=1;
@@ -389,8 +440,6 @@ void timeout_ssis(time_t t)
 	for (i=0;i<MAXUS;i++) {
 		for (j=0;j<3;j++) {
 			if ((ssis[i].ssi[j])&&(ssis[i].ssi_time[j]+SSI_TIMEOUT<t)) {
-				//				wprintw(statuswin,"timeout %i ssi:%i\n",i,ssis[i].ssi[j]);
-				//				wrefresh(statuswin);
 				ssis[i].ssi[j]=0;
 				ssis[i].ssi_time[j]=0;
 				updidx(i);
@@ -484,14 +533,11 @@ void tickf ()
 	if (last_burst) last_burst--;
 }
 
-void keyf()
+void keyf(unsigned char r)
 {
-	unsigned char r;
-	int i;
 	time_t tp;
 	char tmpstr[40];
 	char tmpstr2[80];
-	i=read(0,&r,1);
 	switch (r) {
 		case 'l':
 			do_log=!do_log;
@@ -504,7 +550,7 @@ void keyf()
 				sprintf(tmpstr2,"%s **** log start ****",tmpstr);
 			} else {
 
-				sprintf(tmpstr2,"%s **** log start ****",tmpstr);
+				sprintf(tmpstr2,"%s **** log end ****",tmpstr);
 			}
 			appendlog(tmpstr2);
 			break;
@@ -549,10 +595,25 @@ void keyf()
 				ref=1;
 			}
 			break;
+		case 'F':
+			wprintw(statuswin,"Filter: ");
+			wgetnstr(statuswin,ssi_filter,sizeof(ssi_filter)-1);
+			updopis();
+			break;
+		case 'f':
+			switch(use_filter)
+			{
+				case 0: use_filter=1; break;
+				case 1: use_filter=-1; break;
+				case -1: use_filter=0; break;
+			}
+			updopis();
+			break;
 		case '?':
 			wprintw(statuswin,"HELP: ");
 			wprintw(statuswin,"m-mutessi  M-mute   R-record   a-alldump  ");
 			wprintw(statuswin,"r-refresh  s-stop play  l-log v/V-less/more verbose\n");
+			wprintw(statuswin,"f-enable/disable/invert filter F-enter filter\n");
 			wrefresh(statuswin);
 			break;
 		default: 
@@ -601,12 +662,13 @@ int parsestat(char *c)
 	time_t tp;
 	uint16_t tmpmcc;
 	uint16_t tmpmnc;
+	uint16_t tmpla;
 	uint8_t tmpcolour_code;
 	uint32_t tmpdlf,tmpulf;
 	int rxid;
 	int callingssi,calledssi;
 	char *sdsbegin;
-
+	time_t tmptime;
 	func=getptr(c,"FUNC:");
 	idtype=getptrint(c,"IDT:",10);
 	ssi=getptrint(c,"SSI:",10);
@@ -627,15 +689,24 @@ int parsestat(char *c)
 		tmpcolour_code=getptrint(c,"CCODE:",16);	
 		tmpdlf=getptrint(c,"DLF:",10);
 		tmpulf=getptrint(c,"ULF:",10);
-		if ((tmpmnc!=netinfo.mnc)||(tmpmcc!=netinfo.mcc)||(tmpcolour_code!=netinfo.colour_code)||(tmpdlf!=netinfo.dl_freq)||(tmpulf!=netinfo.ul_freq))
+		tmpla=getptrint(c,"LA:",10);
+		if ((tmpmnc!=netinfo.mnc)||(tmpmcc!=netinfo.mcc)||(tmpcolour_code!=netinfo.colour_code)||(tmpdlf!=netinfo.dl_freq)||(tmpulf!=netinfo.ul_freq)||(tmpla!=netinfo.la))
 		{
 			netinfo.mnc=tmpmnc;
 			netinfo.mcc=tmpmcc;
 			netinfo.colour_code=tmpcolour_code;
 			netinfo.dl_freq=tmpdlf;
 			netinfo.ul_freq=tmpulf;
+			netinfo.la=tmpla;
 			updopis();
+			tmptime=time(0);
 
+			if (netinfo.last_change==tmptime) { netinfo.changes++; } else { netinfo.changes=0; }
+			if (netinfo.changes>4) {
+				wprintw(statuswin,"Too much changes. Are you monitoring only one cell?\n");
+				ref=1;
+			}
+			netinfo.last_change=tmptime;
 		}
 	}
 	if (cmpfunc(func,"DSETUPDEC"))
@@ -716,23 +787,30 @@ int parsetraffic(unsigned char *buf)
 		updidx(usage);
 	}
 	ssis[usage].timeout=tt;
-	//	wprintw(statuswin,"PLAY %i\n",usage);
-	//	ref=1;
 
 	if ((strncmp((char *)buf,"TRA",3)==0)&&(!ssis[usage].encr)) {
-		if ((mutessi)&&(!ssis[usage].ssi[0])&&(!ssis[usage].ssi[1])&&(!ssis[usage].ssi[2])) return(0); //olej jak nie znamy ssi
-		/*	if (!curplayingidx) {
-			curplayingidx=usage;
-			wprintw(statuswin,"NOW PLAYING %i\n",usage);
-			}
-			*/
+		if ((mutessi)&&(!ssis[usage].ssi[0])&&(!ssis[usage].ssi[1])&&(!ssis[usage].ssi[2])) return(0); /* ignore it if we don't know any ssi for this usage identifier */
 
 		findtoplay(0);
 		if ((curplayingidx)&&(curplayingidx==usage)) {
+			if (!matchidx(usage)) {
+				ssis[curplayingidx].active=0;
+				ssis[curplayingidx].play=0;
+				if (verbose>0) wprintw(statuswin,"STOP PLAYING %i\n",curplayingidx);
+				updidx(curplayingidx);
+				curplayingidx=0;
+				findtoplay(curplayingidx+1);
+				ref=1;
+				return(0);
+			}
 			ssis[usage].play=1;
 			if (!ps_mute)	{
-				fwrite(c,1,len,playingfp);
-				fflush(playingfp);
+				if (!ferror(playingfp)) {
+					fwrite(c,1,len,playingfp);
+					fflush(playingfp);
+				} else {
+					wprintw(statuswin,"PLAYBACK PROBLEM!! (fix tplay)\n");
+				}
 			}
 			curplayingtime=time(0);
 			curplayingticks=0;
@@ -763,6 +841,8 @@ int parsetraffic(unsigned char *buf)
 	return(0);
 }
 
+
+
 int main(void)
 {
 	struct sockaddr_in si_me, si_other;
@@ -770,6 +850,7 @@ int main(void)
 	socklen_t slen=sizeof(si_other);
 	unsigned char buf[BUFLEN];
 	char *c,*d;
+	unsigned char e;
 	int len;
 	//int ssi,ssi2,idx,encr;
 	int tport;
@@ -803,6 +884,19 @@ int main(void)
 		tport=PORT;
 	}
 
+	if (getenv("TETRA_SSI_FILTER"))
+	{
+		strncpy((char *)&ssi_filter,getenv("TETRA_SSI_FILTER"),sizeof(ssi_filter)-1);
+	} else {
+		ssi_filter[0]=0;
+	}
+
+	if (getenv("TETRA_SSI_DESCRIPTIONS"))
+	{
+		ssifile=getenv("TETRA_SSI_DESCRIPTIONS");
+	} else {
+		ssifile=def_ssifile;	
+	}
 
 	memset((char *) &si_me, 0, sizeof(si_me));
 	si_me.sin_family = AF_INET;
@@ -815,6 +909,17 @@ int main(void)
 	initcur();
 	updopis();
 	ref=0;
+
+	if (getenv("TETRA_KEYS")) {
+		c=getenv("TETRA_KEYS");
+		while(*c) {
+			keyf(*c);
+			c++;
+		}
+	}
+
+	signal(SIGPIPE,SIG_IGN);
+
 	fd_set rfds;
 	int nfds;
 	int r;
@@ -839,7 +944,9 @@ int main(void)
 
 		if ((r>0)&&(FD_ISSET(0,&rfds)))
 		{
-			keyf();
+			len=read(0,buf,1);
+
+			if (len==1) keyf(buf[0]);
 		}
 
 		if ((r>0)&&(FD_ISSET(s,&rfds)))
