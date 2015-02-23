@@ -702,7 +702,7 @@ int parsestat(char *c)
 			tmptime=time(0);
 
 			if (netinfo.last_change==tmptime) { netinfo.changes++; } else { netinfo.changes=0; }
-			if (netinfo.changes>4) {
+			if (netinfo.changes>10) {
 				wprintw(statuswin,"Too much changes. Are you monitoring only one cell?\n");
 				ref=1;
 			}
