@@ -6,3 +6,4 @@ if [ ! -d $T ]; then
 fi
 mkdir $T/in $T/out $T/log $T/tmp $T/bin
 cp bin/* $T/bin
+touch $T/log/telive.log

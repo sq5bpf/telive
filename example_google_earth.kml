@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://earth.google.com/kml/2.1">
+<Document>
+<NetworkLink>
+<Link>
+<href>file:///tetra/log/tetra1.kml</href>
+<refreshMode>onInterval</refreshMode>
+<refreshInterval>5</refreshInterval>
+</Link>
+<name>Tetra RX</name>
+<visibility>1</visibility>
+</NetworkLink>
+</Document>
+</kml>

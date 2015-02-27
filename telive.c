@@ -1,9 +1,10 @@
-/* telive v0.9 - tetra live monitor
+/* telive v1.0 - tetra live monitor
  * (c) 2014-2015 Jacek Lipkowski <sq5bpf@lipkowski.org>
  * Licensed under GPLv3, please read the file LICENSE, which accompanies 
  * the telive program sources 
  *
  * Changelog:
+ * v1.0 - add KML export --sq5bpf
  * v0.9 - add TETRA_KEYS, add option to filter playback, fixed crash on problems playing, report when the network parameters change too quickly --sq5bpf
  * v0.8 - code cleanups, add the verbose option, display for text sds in the status window  --sq5bpf
  * v0.7 - initial public release --sq5bpf
@@ -36,7 +37,7 @@
 
 #include "telive.h"
 
-#define TELIVE_VERSION "0.9"
+#define TELIVE_VERSION "1.0"
 
 #define BUFLEN 4096
 #define NPACK 10
@@ -58,6 +59,12 @@ char *ssifile;
 char def_ssifile[100]="ssi_descriptions";
 char ssi_filter[100];
 int use_filter=0;
+
+char *kml_file;
+char *kml_tmp_file;
+int kml_interval;
+int last_kml_save=0;
+int kml_changed=0;
 
 #define max(a,b) \
 	({ __typeof__ (a) _a = (a); \
@@ -103,7 +110,19 @@ struct opisy {
 	void *prev;
 };
 
+struct locations {
+unsigned int ssi;
+float lattitude;
+float longtitude;
+char *description;
+time_t lastseen;
+void *next;
+void *prev;
+
+};
+
 struct opisy *opisssi;
+struct locations *kml_locations=0;
 
 int curplayingidx=0;
 time_t curplayingtime=0;
@@ -202,6 +221,72 @@ char *lookupssi(int ssi)
 		ptr=ptr->next;
 	}
 	return((char *)&nop);
+}
+
+
+void add_location(int ssi,float lattitude,float longtitude,char *description)
+{
+	struct locations *ptr;
+	struct locations *prevptr=0;
+char *c;
+	ptr=kml_locations;
+	if (kml_locations) {
+		/* maybe we already have this ssi? */
+		while(ptr) {
+			if (ptr->ssi==ssi) break;
+			prevptr=ptr;
+			ptr=ptr->next;
+		}
+	}
+	if (!ptr) {
+		ptr=malloc(sizeof(struct locations));
+		if (!kml_locations) kml_locations=ptr;
+		if (prevptr) { 
+			ptr->prev=prevptr; 
+			prevptr->next=ptr; 
+		}
+		ptr->ssi=ssi;
+	} else {
+		free(ptr->description);
+
+	}
+	ptr->lastseen=time(0);
+	ptr->lattitude=lattitude;
+	ptr->longtitude=longtitude;
+	ptr->description=strdup(description);
+	c=ptr->description;
+/* ugly hack o that we don't get <> there, which would break the xml */
+	while(*c) { if (*c=='>') *c='G';  if (*c=='<') *c='L'; c++; } 
+	kml_changed=1;
+
+}
+
+void dump_kml_file() {
+	FILE *f;
+	struct locations *ptr;
+	if (verbose>1) wprintw(statuswin,"called dump_kml_file()\n");
+
+	if (!kml_tmp_file) return;
+	f=fopen(kml_tmp_file,"w");
+	if (!f) return;
+	if (verbose>1) wprintw(statuswin,"dump_kml_file(%s)\n",kml_tmp_file);
+	fprintf(f,"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<kml xmlns=\"http://www.opengis.net/kml/2.2\">\n<Folder>\n<name>");
+	fprintf(f,"Telive MCC:%5i MNC:%5i ColourCode:%3i Down:%3.4fMHz Up:%3.4fMHz LA:%5i",netinfo.mcc,netinfo.mnc,netinfo.colour_code,netinfo.dl_freq/1000000.0,netinfo.ul_freq/1000000.0,netinfo.la);
+	fprintf(f,"</name>\n<open>1</open>\n");
+
+	ptr=kml_locations;
+
+	while(ptr)
+	{
+		fprintf(f,"<Placemark> <name>%i</name> <description>%s %s</description> <Point> <coordinates>%f,%f,0</coordinates></Point></Placemark>\n",ptr->ssi,lookupssi(ptr->ssi),ptr->description,ptr->longtitude,ptr->lattitude);
+		ptr=ptr->next;
+	}
+
+	fprintf(f,"</Folder></kml>\n");
+	fclose(f);
+	rename(kml_tmp_file,kml_file);
+	last_kml_save=time(0);
+	kml_changed=0;
 }
 
 #define MAXUS 64
@@ -531,6 +616,7 @@ void tickf ()
 	timeout_rec(t);
 	if (ref) refresh_scr();
 	if (last_burst) last_burst--;
+	if ((kml_changed)&&(kml_interval)&&((t-last_kml_save)>kml_interval)) dump_kml_file();
 }
 
 void keyf(unsigned char r)
@@ -651,6 +737,7 @@ int cmpfunc(char *c,char *func)
 int parsestat(char *c)
 {
 	char *func;
+	char *t,*lonptr,*latptr;
 	int idtype=0;
 	int ssi=0;
 	int usage=0;
@@ -669,6 +756,8 @@ int parsestat(char *c)
 	int callingssi,calledssi;
 	char *sdsbegin;
 	time_t tmptime;
+	float longtitude,lattitude;
+
 	func=getptr(c,"FUNC:");
 	idtype=getptrint(c,"IDT:",10);
 	ssi=getptrint(c,"SSI:",10);
@@ -716,17 +805,38 @@ int parsestat(char *c)
 		updidx(usage);
 
 	}
-
-	if ((cmpfunc(func,"SDSDEC"))&&(strstr(c,"Text")))
-	{ 
+	if (cmpfunc(func,"SDSDEC")) {
 		callingssi=getptrint(c,"CallingSSI:",10);
 		calledssi=getptrint(c,"CalledSSI:",10);
 		sdsbegin=strstr(c,"DATA:");
-		wprintw(statuswin,"SDS %i->%i %s\n",callingssi,calledssi,sdsbegin);
-		ref=1;
+		latptr=getptr(c," lat:");
+		lonptr=getptr(c," lon:");
+		if ((strstr(c,"Text")))
+		{ 
+			wprintw(statuswin,"SDS %i->%i %s\n",callingssi,calledssi,sdsbegin);
+			ref=1;
+
+
+		}
+		/* handle location */
+		if ((latptr)&&(lonptr))
+		{
+			lattitude=atof(latptr);
+			longtitude=atof(lonptr);
+			t=latptr;
+			while ((*t)&&(*t!=' ')) { 
+				if (*t=='S') lattitude=-lattitude;
+				t++;
+			}
+			t=lonptr;
+			while ((*t)&&(*t!=' ')) { 
+				if (*t=='W') longtitude=-longtitude;
+				t++;
+			}
+			add_location(callingssi,lattitude,longtitude,c);
+
+		}
 	}
-
-
 	if (idtype==ADDR_TYPE_SSI_USAGE) {
 		if (cmpfunc(func,"D-SETUP"))
 		{
@@ -861,6 +971,7 @@ int main(void)
 
 	playingfp=popen("tplay >/dev/null 2>&1","w");
 
+
 	if (getenv("TETRA_OUTDIR"))
 	{
 		outdir=getenv("TETRA_OUTDIR");
@@ -896,6 +1007,20 @@ int main(void)
 		ssifile=getenv("TETRA_SSI_DESCRIPTIONS");
 	} else {
 		ssifile=def_ssifile;	
+	}
+
+	if (getenv("TETRA_KML_FILE"))
+	{
+		kml_file=getenv("TETRA_KML_FILE");
+		kml_tmp_file=malloc(strlen(kml_file)+5);
+		sprintf(kml_tmp_file,"%s.tmp",kml_file);
+		if (getenv("TETRA_KML_INTERVAL")) {
+			kml_interval=atoi(getenv("TETRA_KML_INTERVAL"));
+		} else {
+			kml_interval=30;
+		}
+	} else {
+		kml_interval=0;
 	}
 
 	memset((char *) &si_me, 0, sizeof(si_me));
