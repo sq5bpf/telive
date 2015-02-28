@@ -1,6 +1,11 @@
 Telive - Tetra live receiver v1.0
 (c) 2014-2015 Jacek Lipkowski <sq5bpf@lipkowski.org>
 
+THIS DOCUMENT IS ONLY HERE TO HELP SEARCH ENGINES INDEX THE TELIVE
+DOCUMENTATION. PLEASE REFER TO THE PDF DOCS IN telive_doc.pdf, EITHER
+FROM THE TELIVE INSTALLATION DIRECTORY, OR DIRECTLY FROM GITHUB:
+https://github.com/sq5bpf/telive/raw/master/telive_doc.pdf
+
 Description
 
 Telive is a program which can be used to display information like signaling, calls, SDS, location information etc from a TMO Tetra network. It is also possible to log the signalling information, listen to the audio in realtime and to record the audio. Playing the audio and re-compressing it into ogg is done via external scripts. The software is based upon slightly modified osmocom-tetra software. Location information can be written to a KML file, to be opened in Google Earth and similar software.
@@ -390,6 +395,8 @@ The software understands LIP SHORT LOCATION REPORT, and one proprietary Simple L
 
 For near realtime tracking the KML file can be referenced as a Network Link (refer to the Google Earth documentation for further information). A demo is provided in the example_google_earth.kml file - it will reload /tetra/log/tetra1.kml every 5 seconds. It is also possible to serve the KML file via HTTP to multiple remote machines running Google Earth, and modify example_google_earth.kml to reference the file via a http url.
 
+The maximum refresh frequency (in seconds) is set via the environment variable TETRA_KML_INTERVAL. Writing the KML file is done in the same process as the rest of telive, and thus can block the rest of telive for a moment. If you have a lot of location information, and hear a lot of stuttering when KML writing is enabled, then increase TETRA_KML_INTERVAL.
+
 Not much location protocols are implemented at this moment. Please provide samples of telive.log with unimplemented protocol dumps, and with your approximate longitude / latitude. This will help implement them.
 
 Can I use a different receiver?
@@ -434,6 +441,7 @@ Although not recommended, this can be done also with this software.  Set up ever
 The receiver doesn't work, no matter what frequency I tune it to. Gnuradio complains about PLL unock
 
 You are probably not using the right format. Gnuradio expects to have frequency input in Hz. You can also use prefixes like k for kilo, M for mega etc. Quick example in the 1-channel demo: to listen to 435.2125MHz, you could use 435MHz baseband frequency and 212.5kHz offset (or for example 436MHz baseband and -787.5kHz offset). To tune enter 435M (not 435MHz!) for baseband frequency and press Enter, enter 212.5k for offset.
+
 
 I get a warning about terminal size in the status window
 
@@ -496,6 +504,7 @@ Well, actually not. The protocol specifications were publicly available for a lo
 
 Changelog:
 
+20150228: added info what TETRA_KML_INTERVAL is for --sq5bpf
 20150227: added info about version 1.0 and using location information --sq5bpf
 20150130: added info about version 0.9 --sq5bpf
 20141208: added info about testfile.acelp --sq5bpf
