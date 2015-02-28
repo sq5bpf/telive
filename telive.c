@@ -744,8 +744,8 @@ int parsestat(char *c)
 	int encr=0;
 	int writeflag=1;
 
-	char tmpstr[1024];
-	char tmpstr2[1024];
+	char tmpstr[BUFLEN*2];
+	char tmpstr2[BUFLEN*2];
 	time_t tp;
 	uint16_t tmpmcc;
 	uint16_t tmpmnc;
