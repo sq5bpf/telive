@@ -1,9 +1,10 @@
-/* telive v1.0 - tetra live monitor
+/* telive v1.1 - tetra live monitor
  * (c) 2014-2015 Jacek Lipkowski <sq5bpf@lipkowski.org>
  * Licensed under GPLv3, please read the file LICENSE, which accompanies 
  * the telive program sources 
  *
  * Changelog:
+ * v1.1 - made some buffers bigger, ignore location with INVALID_POSITION --sq5bpf
  * v1.0 - add KML export --sq5bpf
  * v0.9 - add TETRA_KEYS, add option to filter playback, fixed crash on problems playing, report when the network parameters change too quickly --sq5bpf
  * v0.8 - code cleanups, add the verbose option, display for text sds in the status window  --sq5bpf
@@ -37,10 +38,9 @@
 
 #include "telive.h"
 
-#define TELIVE_VERSION "1.0"
+#define TELIVE_VERSION "1.1"
 
-#define BUFLEN 4096
-#define NPACK 10
+#define BUFLEN 8192
 #define PORT 7379
 
 /******* definitions *******/
@@ -49,15 +49,14 @@
 #define IDX_TIMEOUT 8 /* after how long we disable the active flag */
 #define CURPLAYING_TIMEOUT 5 /* after how long we stop playing the current usage identifier */
 
-char zerobuf[1380];
 
 char *outdir;
-char def_outdir[100]="/tetra/in";
+char def_outdir[BUFLEN]="/tetra/in";
 char *logfile;
-char def_logfile[100]="telive.log";
+char def_logfile[BUFLEN]="telive.log";
 char *ssifile;
-char def_ssifile[100]="ssi_descriptions";
-char ssi_filter[100];
+char def_ssifile[BUFLEN]="ssi_descriptions";
+char ssi_filter[BUFLEN];
 int use_filter=0;
 
 char *kml_file;
@@ -77,7 +76,7 @@ WINDOW *msgwin=0;
 WINDOW *statuswin=0;
 WINDOW *mainwin=0;
 int ref;
-char prevtmsg[4096];
+char prevtmsg[BUFLEN];
 
 struct {
 	uint16_t mcc;
@@ -99,7 +98,7 @@ struct usi {
 	int timeout;
 	int active;
 	int play;
-	char curfile[128];
+	char curfile[BUFLEN];
 	char curfiletime[32];
 };
 
@@ -255,7 +254,7 @@ char *c;
 	ptr->longtitude=longtitude;
 	ptr->description=strdup(description);
 	c=ptr->description;
-/* ugly hack o that we don't get <> there, which would break the xml */
+/* ugly hack so that we don't get <> there, which would break the xml */
 	while(*c) { if (*c=='>') *c='G';  if (*c=='<') *c='L'; c++; } 
 	kml_changed=1;
 
@@ -496,7 +495,6 @@ int matchidx(int idx)
 int findtoplay(int first)
 {
 	int i;
-	int j;
 	if (curplayingidx) return(0);
 
 	for (i=first;i<MAXUS;i++) {
@@ -819,7 +817,7 @@ int parsestat(char *c)
 
 		}
 		/* handle location */
-		if ((latptr)&&(lonptr))
+		if ((strstr(c,"INVALID_POSITION")==0)&&(latptr)&&(lonptr))
 		{
 			lattitude=atof(latptr);
 			longtitude=atof(lonptr);
@@ -889,7 +887,7 @@ int parsetraffic(unsigned char *buf)
 	int rxid;
 	usage=getptrint((char *)buf,"TRA",16);
 	rxid=getptrint((char *)buf,"RX",16);
-	if (!usage) return(0);
+	if ((usage<1)||(usage>63)) return(0);
 	c=buf+6;
 
 	if (!ssis[usage].active) {
@@ -960,12 +958,9 @@ int main(void)
 	socklen_t slen=sizeof(si_other);
 	unsigned char buf[BUFLEN];
 	char *c,*d;
-	unsigned char e;
 	int len;
-	//int ssi,ssi2,idx,encr;
 	int tport;
 	//system("resize -s 60 203"); /* this blocks on some xterms, no idea why */
-	memset(zerobuf,0,sizeof(zerobuf));
 	if ((s=socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP))==-1)
 		diep("socket");
 
@@ -1012,7 +1007,7 @@ int main(void)
 	if (getenv("TETRA_KML_FILE"))
 	{
 		kml_file=getenv("TETRA_KML_FILE");
-		kml_tmp_file=malloc(strlen(kml_file)+5);
+		kml_tmp_file=malloc(strlen(kml_file)+6);
 		sprintf(kml_tmp_file,"%s.tmp",kml_file);
 		if (getenv("TETRA_KML_INTERVAL")) {
 			kml_interval=atoi(getenv("TETRA_KML_INTERVAL"));
