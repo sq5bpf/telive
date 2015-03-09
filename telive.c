@@ -323,14 +323,14 @@ int initcur() {
 	clear();
 	mainwin=newwin(LINES-STATUSLINES,COLS,0,0);
 
-	msgwin=newwin(STATUSLINES+1,COLS/2,LINES-STATUSLINES,0);
+	msgwin=newwin(STATUSLINES,COLS/2,LINES-STATUSLINES,0);
 	wattron(msgwin,COLOR_PAIR(2));
 	wbkgdset(msgwin,COLOR_PAIR(2));
 	wclear(msgwin);
 	wprintw(msgwin,"Message window\n");
 	scrollok(msgwin,TRUE);
 
-	statuswin=newwin(STATUSLINES+1,COLS/2,LINES-STATUSLINES,COLS/2+1);
+	statuswin=newwin(STATUSLINES,COLS/2,LINES-STATUSLINES,COLS/2+1);
 	wattron(statuswin,COLOR_PAIR(3));
 	wbkgdset(statuswin,COLOR_PAIR(3));
 	wclear(statuswin);
