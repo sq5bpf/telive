@@ -817,7 +817,7 @@ int parsestat(char *c)
 
 		}
 		/* handle location */
-		if ((strstr(c,"INVALID_POSITION")==0)&&(latptr)&&(lonptr))
+		if ((kml_tmp_file)&&(strstr(c,"INVALID_POSITION")==0)&&(latptr)&&(lonptr))
 		{
 			lattitude=atof(latptr);
 			longtitude=atof(lonptr);
