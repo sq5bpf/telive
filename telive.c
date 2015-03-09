@@ -790,7 +790,7 @@ int parsestat(char *c)
 
 			if (netinfo.last_change==tmptime) { netinfo.changes++; } else { netinfo.changes=0; }
 			if (netinfo.changes>10) {
-				wprintw(statuswin,"Too much changes. Are you monitoring only one cell?\n");
+				wprintw(statuswin,"Too much changes. Are you monitoring only one cell? (enable alldump to see)\n");
 				ref=1;
 			}
 			netinfo.last_change=tmptime;
@@ -869,6 +869,7 @@ int parsestat(char *c)
 
 		wprintw(msgwin,"%s\n",tmpstr2);
 		strncpy(prevtmsg,c,sizeof(prevtmsg)-1);
+		prevtmsg[sizeof(prevtmsg)-1]=0;
 		if (do_log) appendlog(tmpstr2);
 	}
 
