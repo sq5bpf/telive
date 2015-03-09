@@ -30,13 +30,16 @@ export TETRA_PORT=7379
 #export TETRA_SSI_FILTER=10?? #example: match 1000-1099
 #export TETRA_SSI_FILTER='+(1000|[234]0??|?????)' #example: match 1000, 2000-2099, 3000-3099, 4000-4099, and any 5 digit number, you still have to enable the filter with f
 
+# uncomment the export TETRA_KML_FILE and export TETRA_KML_INTERVAL lines if you want KML handling
+# these are commented out due to crashes that i have trouble debugging
+
 # TETRA_KML_FILE - if set, the locations will be written periodically to this 
 # file in KML format
-export TETRA_KML_FILE=/tetra/log/tetra1.kml
+#export TETRA_KML_FILE=/tetra/log/tetra1.kml
 
 # TETRA_KML_INTERVAL - this will set the maximum KML file refresh rate
 # if unset, this will default to 30 seconds
-export TETRA_KML_INTERVAL=3
+#export TETRA_KML_INTERVAL=3
 
 # TETRA_SSI_DESCRIPTIONS - a file contaning textual descriptions of ssis
 # if unset then no file is used
