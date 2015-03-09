@@ -59,8 +59,8 @@ char def_ssifile[BUFLEN]="ssi_descriptions";
 char ssi_filter[BUFLEN];
 int use_filter=0;
 
-char *kml_file;
-char *kml_tmp_file;
+char *kml_file=NULL;
+char *kml_tmp_file=NULL;
 int kml_interval;
 int last_kml_save=0;
 int kml_changed=0;
