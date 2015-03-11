@@ -1,9 +1,10 @@
-/* telive v1.1 - tetra live monitor
+/* telive v1.2 - tetra live monitor
  * (c) 2014-2015 Jacek Lipkowski <sq5bpf@lipkowski.org>
  * Licensed under GPLv3, please read the file LICENSE, which accompanies 
  * the telive program sources 
  *
  * Changelog:
+ * v1.2 - fixed various crashes, made timeouts configurable via env variables --sq5bpf
  * v1.1 - made some buffers bigger, ignore location with INVALID_POSITION --sq5bpf
  * v1.0 - add KML export --sq5bpf
  * v0.9 - add TETRA_KEYS, add option to filter playback, fixed crash on problems playing, report when the network parameters change too quickly --sq5bpf
@@ -38,16 +39,17 @@
 
 #include "telive.h"
 
-#define TELIVE_VERSION "1.1"
+#define TELIVE_VERSION "1.2"
 
 #define BUFLEN 8192
 #define PORT 7379
 
 /******* definitions *******/
-#define REC_TIMEOUT 30 /* after how long we stop to record a usage identifier */
-#define SSI_TIMEOUT 60 /* after how long we forget SSIs */
-#define IDX_TIMEOUT 8 /* after how long we disable the active flag */
-#define CURPLAYING_TIMEOUT 5 /* after how long we stop playing the current usage identifier */
+int rec_timeout=30; /* after how long we stop to record a usage identifier */
+int ssi_timeout=60; /* after how long we forget SSIs */
+int idx_timeout=8; /* after how long we disable the active flag */
+int curplaying_timeout=5; /* after how long we stop playing the current usage identifier */
+
 
 
 char *outdir;
@@ -110,18 +112,18 @@ struct opisy {
 };
 
 struct locations {
-unsigned int ssi;
-float lattitude;
-float longtitude;
-char *description;
-time_t lastseen;
-void *next;
-void *prev;
+	unsigned int ssi;
+	float lattitude;
+	float longtitude;
+	char *description;
+	time_t lastseen;
+	void *next;
+	void *prev;
 
 };
 
 struct opisy *opisssi;
-struct locations *kml_locations=0;
+struct locations *kml_locations=NULL;
 
 int curplayingidx=0;
 time_t curplayingtime=0;
@@ -138,8 +140,10 @@ int last_burst=0;
 void appendlog(char *msg) {
 	FILE *f;
 	f=fopen(logfile,"ab");
-	if (f) fprintf(f,"%s\n",msg);
-	fclose(f);
+	if (f) {
+		fprintf(f,"%s\n",msg);
+		fclose(f);
+	}
 }
 
 
@@ -178,34 +182,33 @@ int initopis()
 	char str[100];
 	struct opisy *ptr,*prevptr;
 	char *c;
-	prevptr=0;
-	//	printw("[1]"); refresh();
+
+	prevptr=NULL;
 	clearopisy();
-	//	printw("[2]"); refresh();
 	g=fopen(ssifile,"r");
+	if (!g) return(0);
+	str[sizeof(str)-1]=0;
 	while(!feof(g))
 	{
-		if (!fgets(str,sizeof(str),g)) break;
+		if (!fgets(str,sizeof(str)-1,g)) break;
 		c=strchr(str,' ');
+		if (c==NULL) continue;
 		*c=0;
 		c++;
 		ptr=malloc(sizeof(struct opisy));
 		if (prevptr) {
 			prevptr->next=ptr;
 			ptr->prev=prevptr;
-			ptr->next=0;
+			ptr->next=NULL;
 		} else
 		{
 			opisssi=ptr;
-
 		}
 		ptr->ssi=atoi(str);
 		ptr->opis=strdup(c);
 		prevptr=ptr;
 	}
-
 	fclose(g);
-	//	printw("[3]"); refresh();
 	return(1);
 }
 
@@ -225,36 +228,37 @@ char *lookupssi(int ssi)
 
 void add_location(int ssi,float lattitude,float longtitude,char *description)
 {
-	struct locations *ptr;
-	struct locations *prevptr=0;
-char *c;
-	ptr=kml_locations;
-	if (kml_locations) {
-		/* maybe we already have this ssi? */
+	struct locations *ptr=kml_locations;
+	struct locations *prevptr=NULL;
+	char *c;
+
+	if (ptr) {
+		/* maybe we already know this ssi? */
 		while(ptr) {
 			if (ptr->ssi==ssi) break;
 			prevptr=ptr;
 			ptr=ptr->next;
 		}
 	}
+
 	if (!ptr) {
-		ptr=malloc(sizeof(struct locations));
+		ptr=calloc(1,sizeof(struct locations));
 		if (!kml_locations) kml_locations=ptr;
 		if (prevptr) { 
 			ptr->prev=prevptr; 
 			prevptr->next=ptr; 
-		}
+		} 
 		ptr->ssi=ssi;
 	} else {
 		free(ptr->description);
-
 	}
+
 	ptr->lastseen=time(0);
 	ptr->lattitude=lattitude;
 	ptr->longtitude=longtitude;
 	ptr->description=strdup(description);
 	c=ptr->description;
-/* ugly hack so that we don't get <> there, which would break the xml */
+	/* ugly hack so that we don't get <> there, which would break the xml */
 	while(*c) { if (*c=='>') *c='G';  if (*c=='<') *c='L'; c++; } 
 	kml_changed=1;
 
@@ -262,7 +266,7 @@ char *c;
 
 void dump_kml_file() {
 	FILE *f;
-	struct locations *ptr;
+	struct locations *ptr=kml_locations;
 	if (verbose>1) wprintw(statuswin,"called dump_kml_file()\n");
 
 	if (!kml_tmp_file) return;
@@ -272,8 +276,6 @@ void dump_kml_file() {
 	fprintf(f,"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<kml xmlns=\"http://www.opengis.net/kml/2.2\">\n<Folder>\n<name>");
 	fprintf(f,"Telive MCC:%5i MNC:%5i ColourCode:%3i Down:%3.4fMHz Up:%3.4fMHz LA:%5i",netinfo.mcc,netinfo.mnc,netinfo.colour_code,netinfo.dl_freq/1000000.0,netinfo.ul_freq/1000000.0,netinfo.la);
 	fprintf(f,"</name>\n<open>1</open>\n");
-
-	ptr=kml_locations;
 
 	while(ptr)
 	{
@@ -384,6 +386,9 @@ void updidx(int idx) {
 	int row=getr(idx);
 	int col=getcl(idx);
 	int bold=0;
+
+	if ((idx<0)||(idx>=MAXUS)) { wprintw(statuswin,"BUG! updidx(%i)\n",idx); wrefresh(statuswin); return; }
+
 	opis[0]=0;
 	wmove(mainwin,row,col+5);
 	if (ssis[idx].active) strcat(opis,"OK ");
@@ -413,6 +418,7 @@ int addssi(int idx,int ssi)
 	int i;
 
 	if (!ssi) return(0);
+	if ((idx<0)||(idx>=MAXUS)) { wprintw(statuswin,"BUG! addssi(%i,%i)\n",idx,ssi); wrefresh(statuswin); return(0); }
 	for(i=0;i<3;i++) {
 		if (ssis[idx].ssi[i]==ssi) {
 			ssis[idx].ssi_time[i]=time(0);
@@ -469,8 +475,8 @@ int matchssi(int ssi)
 {
 	int r;
 	char ssistr[16];
-	sprintf(ssistr,"%i",ssi);
 	if (!ssi) return(0);
+	sprintf(ssistr,"%i",ssi);
 	if (strlen(ssi_filter)==0) return(1); 
 	r=fnmatch((char *)&ssi_filter,(char *)&ssistr,FNM_EXTMATCH);
 	return(!r);
@@ -522,7 +528,7 @@ void timeout_ssis(time_t t)
 	int i,j;
 	for (i=0;i<MAXUS;i++) {
 		for (j=0;j<3;j++) {
-			if ((ssis[i].ssi[j])&&(ssis[i].ssi_time[j]+SSI_TIMEOUT<t)) {
+			if ((ssis[i].ssi[j])&&(ssis[i].ssi_time[j]+ssi_timeout<t)) {
 				ssis[i].ssi[j]=0;
 				ssis[i].ssi_time[j]=0;
 				updidx(i);
@@ -546,7 +552,7 @@ void timeout_idx(time_t t)
 {
 	int i;
 	for (i=0;i<MAXUS;i++) {
-		if ((ssis[i].active)&&(ssis[i].timeout+IDX_TIMEOUT<t)) {
+		if ((ssis[i].active)&&(ssis[i].timeout+idx_timeout<t)) {
 			ssis[i].active=0;
 			ssis[i].play=0;
 			updidx(i);
@@ -558,7 +564,7 @@ void timeout_idx(time_t t)
 
 void timeout_curplaying(time_t t)
 {
-	if ((curplayingidx)&&(curplayingtime+CURPLAYING_TIMEOUT<t)) {
+	if ((curplayingidx)&&(curplayingtime+curplaying_timeout<t)) {
 		//wprintw(statuswin,"STOP PLAYING %i\n",curplayingidx);
 		ssis[curplayingidx].active=0;
 		ssis[curplayingidx].play=0;
@@ -576,7 +582,7 @@ void timeout_rec(time_t t)
 	char tmpfile[256];
 	int i;
 	for (i=0;i<MAXUS;i++) {
-		if ((strlen(ssis[i].curfile))&&(ssis[i].ssi_time_rec+REC_TIMEOUT<t)) {
+		if ((strlen(ssis[i].curfile))&&(ssis[i].ssi_time_rec+rec_timeout<t)) {
 			snprintf(tmpfile,sizeof(tmpfile),"%s/traffic_%s_%i_%i_%i_%i.out",outdir,ssis[i].curfiletime,i,ssis[i].ssi[0],ssis[i].ssi[1],ssis[i].ssi[2]);
 			rename(ssis[i].curfile,tmpfile);
 			ssis[i].curfile[0]=0;
@@ -602,7 +608,7 @@ void tickf ()
 	if (curplayingidx) {
 		/* crude hack to hack around buffering, i know this should be done better */
 		if (curplayingticks==2) {
-			fclose(playingfp);
+			if (playingfp) fclose(playingfp);
 			playingfp=popen("tplay >/dev/null 2>&1","w");
 
 		}
@@ -720,8 +726,7 @@ int getptrint(char *s,char *id,int base)
 {
 	char *c;
 	c=getptr(s,id);
-	if (!c) 
-		return(0); /* albo moze -1 byloby lepiej? */
+	if (!c) return(0); /* albo moze -1 byloby lepiej? */
 	return(strtol(c, (char **) NULL, base));
 }
 
@@ -823,12 +828,12 @@ int parsestat(char *c)
 			longtitude=atof(lonptr);
 			t=latptr;
 			while ((*t)&&(*t!=' ')) { 
-				if (*t=='S') lattitude=-lattitude;
+				if (*t=='S') { lattitude=-lattitude; break; }
 				t++;
 			}
 			t=lonptr;
 			while ((*t)&&(*t!=' ')) { 
-				if (*t=='W') longtitude=-longtitude;
+				if (*t=='W') { longtitude=-longtitude; break; }
 				t++;
 			}
 			add_location(callingssi,lattitude,longtitude,c);
@@ -865,7 +870,7 @@ int parsestat(char *c)
 		tp=time(0);
 		strftime(tmpstr,40,"%Y%m%d %H:%M:%S",localtime(&tp));
 
-		sprintf(tmpstr2,"%s %s",tmpstr,c);
+		snprintf(tmpstr2,sizeof(tmpstr2)-1,"%s %s",tmpstr,c);
 
 		wprintw(msgwin,"%s\n",tmpstr2);
 		strncpy(prevtmsg,c,sizeof(prevtmsg)-1);
@@ -919,6 +924,8 @@ int parsetraffic(unsigned char *buf)
 					fflush(playingfp);
 				} else {
 					wprintw(statuswin,"PLAYBACK PROBLEM!! (fix tplay)\n");
+					playingfp=NULL;
+					curplayingidx=0;
 				}
 			}
 			curplayingtime=time(0);
@@ -926,7 +933,7 @@ int parsetraffic(unsigned char *buf)
 			updidx(usage);
 			ref=1;
 		}
-		if ((strlen(ssis[usage].curfile)==0)||(ssis[usage].ssi_time_rec+REC_TIMEOUT<tt)) {
+		if ((strlen(ssis[usage].curfile)==0)||(ssis[usage].ssi_time_rec+rec_timeout<tt)) {
 			/* either it has no name, or there was a timeout, 
 			 * change the file name */
 			strftime(ssis[usage].curfiletime,32,"%Y%m%d_%H%M%S",localtime(&tt));
@@ -938,8 +945,10 @@ int parsetraffic(unsigned char *buf)
 		{
 			if (ps_record) {	
 				f=fopen(ssis[usage].curfile,"ab");
-				fwrite(c, 1, len, f);
-				fclose(f);
+				if (f) {
+					fwrite(c, 1, len, f);
+					fclose(f);
+				}
 			}
 			ssis[usage].ssi_time_rec=tt;
 		}
@@ -950,23 +959,8 @@ int parsetraffic(unsigned char *buf)
 	return(0);
 }
 
-
-
-int main(void)
-{
-	struct sockaddr_in si_me, si_other;
-	int s;
-	socklen_t slen=sizeof(si_other);
-	unsigned char buf[BUFLEN];
-	char *c,*d;
-	int len;
-	int tport;
-	//system("resize -s 60 203"); /* this blocks on some xterms, no idea why */
-	if ((s=socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP))==-1)
-		diep("socket");
-
-	playingfp=popen("tplay >/dev/null 2>&1","w");
-
+/* get config from env variables, maybe i should switch it to getopt() one day */
+void get_cfgenv() {
 
 	if (getenv("TETRA_OUTDIR"))
 	{
@@ -982,15 +976,6 @@ int main(void)
 	} else {
 		logfile=def_logfile;
 	}
-
-
-	if (getenv("TETRA_PORT"))
-	{
-		tport=atoi(getenv("TETRA_PORT"));
-	} else {
-		tport=PORT;
-	}
-
 	if (getenv("TETRA_SSI_FILTER"))
 	{
 		strncpy((char *)&ssi_filter,getenv("TETRA_SSI_FILTER"),sizeof(ssi_filter)-1);
@@ -1017,6 +1002,36 @@ int main(void)
 		}
 	} else {
 		kml_interval=0;
+	}
+
+	if (getenv("TETRA_REC_TIMEOUT")) rec_timeout=atoi(getenv("TETRA_REC_TIMEOUT"));
+	if (getenv("TETRA_SSI_TIMEOUT")) ssi_timeout=atoi(getenv("TETRA_SSI_TIMEOUT"));
+	if (getenv("TETRA_IDX_TIMEOUT")) idx_timeout=atoi(getenv("TETRA_IDX_TIMEOUT"));
+	if (getenv("TETRA_CURPLAYING_TIMEOUT")) curplaying_timeout=atoi(getenv("TETRA_CURPLAYING_TIMEOUT"));
+
+}
+
+int main(void)
+{
+	struct sockaddr_in si_me, si_other;
+	int s;
+	socklen_t slen=sizeof(si_other);
+	unsigned char buf[BUFLEN];
+	char *c,*d;
+	int len;
+	int tport;
+	//system("resize -s 60 203"); /* this blocks on some xterms, no idea why */
+	if ((s=socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP))==-1)
+		diep("socket");
+
+	playingfp=popen("tplay >/dev/null 2>&1","w");
+
+	get_cfgenv(); 
+	if (getenv("TETRA_PORT"))
+	{
+		tport=atoi(getenv("TETRA_PORT"));
+	} else {
+		tport=PORT;
 	}
 
 	memset((char *) &si_me, 0, sizeof(si_me));
