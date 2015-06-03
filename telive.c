@@ -1,9 +1,10 @@
-/* telive v1.2 - tetra live monitor
+/* telive v1.3 - tetra live monitor
  * (c) 2014-2015 Jacek Lipkowski <sq5bpf@lipkowski.org>
  * Licensed under GPLv3, please read the file LICENSE, which accompanies 
  * the telive program sources 
  *
  * Changelog:
+ * v1.3 - add frequency info --sq5bpf
  * v1.2 - fixed various crashes, made timeouts configurable via env variables --sq5bpf
  * v1.1 - made some buffers bigger, ignore location with INVALID_POSITION --sq5bpf
  * v1.0 - add KML export --sq5bpf
@@ -39,7 +40,7 @@
 
 #include "telive.h"
 
-#define TELIVE_VERSION "1.2"
+#define TELIVE_VERSION "1.3"
 
 #define BUFLEN 8192
 #define PORT 7379
@@ -66,6 +67,7 @@ char *kml_tmp_file=NULL;
 int kml_interval;
 int last_kml_save=0;
 int kml_changed=0;
+int freq_changed=0;
 
 #define max(a,b) \
 	({ __typeof__ (a) _a = (a); \
@@ -76,7 +78,9 @@ int kml_changed=0;
 int verbose=0;
 WINDOW *msgwin=0;
 WINDOW *statuswin=0;
+WINDOW *titlewin=0;
 WINDOW *mainwin=0;
+WINDOW *freqwin=0;
 int ref;
 char prevtmsg[BUFLEN];
 
@@ -91,6 +95,19 @@ struct {
 	uint32_t changes;
 } netinfo;
 
+/* this structure is used to describe all known frequencies */
+struct freqinfo {
+	uint32_t dl_freq;
+	uint32_t ul_freq;
+	uint16_t mcc;
+	uint16_t mnc;
+	uint16_t la;
+	time_t last_change;
+	int reason;
+	int rx;
+	void *next;
+	void *prev;
+};
 
 struct usi {
 	unsigned int ssi[3];
@@ -124,6 +141,7 @@ struct locations {
 
 struct opisy *opisssi;
 struct locations *kml_locations=NULL;
+struct freqinfo *frequencies=NULL;
 
 int curplayingidx=0;
 time_t curplayingtime=0;
@@ -136,6 +154,8 @@ int ps_mute=0;
 int do_log=0;
 int last_burst=0;
 
+enum telive_screen { DISPLAY_IDX, DISPLAY_FREQ, DISPLAY_END };
+int display_state=DISPLAY_IDX;
 
 void appendlog(char *msg) {
 	FILE *f;
@@ -324,7 +344,6 @@ int initcur() {
 	init_pair(5, COLOR_BLACK, COLOR_YELLOW);
 	clear();
 	mainwin=newwin(LINES-STATUSLINES,COLS,0,0);
-
 	msgwin=newwin(STATUSLINES,COLS/2,LINES-STATUSLINES,0);
 	wattron(msgwin,COLOR_PAIR(2));
 	wbkgdset(msgwin,COLOR_PAIR(2));
@@ -498,6 +517,122 @@ int matchidx(int idx)
 	return(j);
 }
 
+/* frequency table functions */
+#define REASON_NETINFO 0
+#define REASON_FREQINFO 1
+#define REASON_ULFREQ 2
+/* insert frequency into the freq table */
+insert_freq(int reason,uint16_t mnc,uint16_t mcc,uint32_t ulf,uint32_t dlf,uint16_t la, int rx)
+{
+
+	struct freqinfo *ptr=frequencies;
+	struct freqinfo *prevptr=NULL;
+	char *c;
+
+	/* maybe we already know the uplink or downlink frequency */
+	while(ptr) {
+		if ((ulf)&&(ulf==ptr->ul_freq)) break;
+		if ((dlf)&&(dlf==ptr->dl_freq)) break;
+		prevptr=ptr;
+		ptr=ptr->next;
+	}
+
+	if (!ptr) {
+		ptr=calloc(1,sizeof(struct freqinfo));
+		if (!frequencies) frequencies=ptr;
+		if (prevptr) { 
+			ptr->prev=prevptr; 
+			prevptr->next=ptr; 
+		}
+	} else {
+
+	}	
+	if ((verbose)&&(reason!=REASON_NETINFO)) {
+		wprintw(statuswin,"Down:%3.4fMHz Up:%3.4fMHz LA:%i MCC:%i MNC:%i reason:%i RX:%i\n",dlf/1000000.0,ulf/1000000.0,la,mcc,mnc,reason,rx);
+		wrefresh(statuswin);
+	}
+	ptr->last_change=time(0);
+	ptr->ul_freq=ulf;
+	ptr->dl_freq=dlf;
+	ptr->la=la;
+	ptr->mcc=mcc;
+	ptr->mnc=mnc;
+	ptr->reason=reason;
+	ptr->rx=rx;
+	freq_changed=1;
+}
+
+/* clear the freq table, delete old frequencies */
+#define FREQ_TIMEOUT 600 /* 10 minutes, hardcoded for now */
+void clear_freqtable() {
+	struct freqinfo *ptr=frequencies;
+	struct freqinfo *prevptr,*nextptr;
+
+	if (!ptr) return;
+
+	time_t timenow=time(0);
+
+	while(ptr) {
+		if ((timenow-ptr->last_change)>FREQ_TIMEOUT) {
+			prevptr=ptr->prev;
+			nextptr=ptr->next;
+			free(ptr);
+			if (prevptr) {
+				prevptr->next=nextptr;
+				if (nextptr) nextptr->prev=prevptr;
+			} else {
+				frequencies=nextptr;
+				if (nextptr) nextptr->prev=NULL;
+			}
+			freq_changed=1;
+		}
+		ptr=ptr->next;
+	}
+}
+
+void display_freq() {
+	char tmpstr2[64];
+	char tmpstr[256];
+	struct freqinfo *ptr=frequencies;
+	wprintw(statuswin,"Known frequencies:\n");
+	while(ptr) {
+		tmpstr[0]=0;
+		if (ptr->dl_freq) {
+			sprintf(tmpstr2,"Downlink:%3.4fMHz ",ptr->dl_freq/1000000.0);
+			strcat(tmpstr,tmpstr2);
+		}
+
+		if (ptr->ul_freq) {
+			sprintf(tmpstr2,"Uplink:%3.4fMHz ",ptr->ul_freq/1000000.0);
+			strcat(tmpstr,tmpstr2);
+		}
+		strcat(tmpstr," - ");
+
+		if (ptr->mcc) {
+			sprintf(tmpstr2,"MCC:%5i ",ptr->mcc);
+			strcat(tmpstr,tmpstr2);
+		}
+
+		if (ptr->mnc) {
+			sprintf(tmpstr2,"MNC:%5i ",ptr->mnc);
+			strcat(tmpstr,tmpstr2);
+		}
+
+		if (ptr->la) {
+			sprintf(tmpstr2,"LA:%5i ",ptr->la);
+			strcat(tmpstr,tmpstr2);
+		}
+
+		sprintf(tmpstr2,"reason:%i RX:%i",ptr->reason,ptr->rx);
+		strcat(tmpstr,tmpstr2);
+		wprintw(statuswin,"%s\n",tmpstr);
+		ptr=ptr->next;
+	}
+	wrefresh(statuswin);
+	freq_changed=0;
+}
+
+/* find an usage identifier with live audio so that we can play it */
 int findtoplay(int first)
 {
 	int i;
@@ -598,6 +733,7 @@ void refresh_scr()
 {
 	ref=0;
 	wrefresh(mainwin);
+	if (freqwin) wrefresh(freqwin);
 	wrefresh(statuswin);
 	wrefresh(msgwin);
 }
@@ -618,6 +754,8 @@ void tickf ()
 	timeout_idx(t);
 	timeout_curplaying(t);
 	timeout_rec(t);
+	//	if (freq_changed) display_freq();
+	clear_freqtable();
 	if (ref) refresh_scr();
 	if (last_burst) last_burst--;
 	if ((kml_changed)&&(kml_interval)&&((t-last_kml_save)>kml_interval)) dump_kml_file();
@@ -699,11 +837,14 @@ void keyf(unsigned char r)
 			}
 			updopis();
 			break;
+		case 't':
+			display_freq();
+			break;
 		case '?':
 			wprintw(statuswin,"HELP: ");
 			wprintw(statuswin,"m-mutessi  M-mute   R-record   a-alldump  ");
 			wprintw(statuswin,"r-refresh  s-stop play  l-log v/V-less/more verbose\n");
-			wprintw(statuswin,"f-enable/disable/invert filter F-enter filter\n");
+			wprintw(statuswin,"f-enable/disable/invert filter F-enter filter t-display freqs\n");
 			wrefresh(statuswin);
 			break;
 		default: 
@@ -782,6 +923,7 @@ int parsestat(char *c)
 		tmpdlf=getptrint(c,"DLF:",10);
 		tmpulf=getptrint(c,"ULF:",10);
 		tmpla=getptrint(c,"LA:",10);
+		insert_freq(REASON_NETINFO,tmpmnc,tmpmcc,tmpulf,tmpdlf,tmpla,rxid);
 		if ((tmpmnc!=netinfo.mnc)||(tmpmcc!=netinfo.mcc)||(tmpcolour_code!=netinfo.colour_code)||(tmpdlf!=netinfo.dl_freq)||(tmpulf!=netinfo.ul_freq)||(tmpla!=netinfo.la))
 		{
 			netinfo.mnc=tmpmnc;
@@ -800,6 +942,16 @@ int parsestat(char *c)
 			}
 			netinfo.last_change=tmptime;
 		}
+	}
+	if (cmpfunc(func,"FREQINFO")) {
+		writeflag=0;
+		tmpmnc=getptrint(c,"MNC:",16);	
+		tmpmcc=getptrint(c,"MCC:",16);	
+		tmpdlf=getptrint(c,"DLF:",10);
+		tmpulf=getptrint(c,"ULF:",10);
+		tmpla=getptrint(c,"LA:",10);
+		insert_freq(REASON_FREQINFO,tmpmnc,tmpmcc,tmpulf,tmpdlf,tmpla,rxid);
+
 	}
 	if (cmpfunc(func,"DSETUPDEC"))
 	{
