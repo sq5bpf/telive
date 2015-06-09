@@ -1,9 +1,10 @@
-/* telive v1.3 - tetra live monitor
+/* telive v1.4 - tetra live monitor
  * (c) 2014-2015 Jacek Lipkowski <sq5bpf@lipkowski.org>
  * Licensed under GPLv3, please read the file LICENSE, which accompanies 
  * the telive program sources 
  *
  * Changelog:
+ * v1.4 - added frequency window --sq5bpf
  * v1.3 - add frequency info --sq5bpf
  * v1.2 - fixed various crashes, made timeouts configurable via env variables --sq5bpf
  * v1.1 - made some buffers bigger, ignore location with INVALID_POSITION --sq5bpf
@@ -40,7 +41,7 @@
 
 #include "telive.h"
 
-#define TELIVE_VERSION "1.3"
+#define TELIVE_VERSION "1.4"
 
 #define BUFLEN 8192
 #define PORT 7379
@@ -69,6 +70,11 @@ int last_kml_save=0;
 int kml_changed=0;
 int freq_changed=0;
 
+/* various times for scheduling in tickf() */
+time_t last_1s_event=0;
+time_t last_10s_event=0;
+time_t last_1min_event=0;
+
 #define max(a,b) \
 	({ __typeof__ (a) _a = (a); \
 	 __typeof__ (b) _b = (b); \
@@ -76,13 +82,17 @@ int freq_changed=0;
 
 
 int verbose=0;
-WINDOW *msgwin=0;
-WINDOW *statuswin=0;
-WINDOW *titlewin=0;
-WINDOW *mainwin=0;
-WINDOW *freqwin=0;
-int ref;
-char prevtmsg[BUFLEN];
+WINDOW *msgwin=0; /* message window */
+WINDOW *statuswin=0; /* status window */
+WINDOW *titlewin=0; /* title window */
+WINDOW *mainwin=0; /* main window */
+WINDOW *freqwin=0; /* frequency window */
+WINDOW *ssiwin=0; /* SSI window */
+WINDOW *locwin=0; /* Location window */
+WINDOW *displayedwin=0; /* the window currently displayed */
+int ref; /* window refresh flag */
+
+char prevtmsg[BUFLEN]; /* contents of previous message */
 
 struct {
 	uint16_t mcc;
@@ -323,82 +333,15 @@ void diep(char *s)
 }
 #define RR 13
 int getr(int idx) {
-	return(1+(idx%RR)*4);
+	return((idx%RR)*4);
 }
 
 int getcl(int idx)
 {
 	return ((idx/RR)*40);
 }
-#define STATUSLINES 7
-int initcur() {
-	int idx;
-	int maxx,maxy;
-	initscr();
-	start_color();
-	cbreak();
-	init_pair(1, COLOR_RED, COLOR_BLUE);
-	init_pair(2, COLOR_YELLOW, COLOR_BLUE);
-	init_pair(3, COLOR_RED, COLOR_GREEN);
-	init_pair(4, COLOR_WHITE, COLOR_GREEN);
-	init_pair(5, COLOR_BLACK, COLOR_YELLOW);
-	clear();
-	mainwin=newwin(LINES-STATUSLINES,COLS,0,0);
-	msgwin=newwin(STATUSLINES,COLS/2,LINES-STATUSLINES,0);
-	wattron(msgwin,COLOR_PAIR(2));
-	wbkgdset(msgwin,COLOR_PAIR(2));
-	wclear(msgwin);
-	wprintw(msgwin,"Message window\n");
-	scrollok(msgwin,TRUE);
 
-	statuswin=newwin(STATUSLINES,COLS/2,LINES-STATUSLINES,COLS/2+1);
-	wattron(statuswin,COLOR_PAIR(3));
-	wbkgdset(statuswin,COLOR_PAIR(3));
-	wclear(statuswin);
-	wprintw(statuswin,"####  Press ? for keystroke help  ####\n");
-	getmaxyx(stdscr,maxy,maxx);
-	if ((maxx!=203)||(maxy!=60)) {
-		wprintw(statuswin,"\nWARNING: The terminal size is %ix%i, but it should be 203x60\nThe program will still work, but the display may be mangled\n\n",maxx,maxy);
-	}
-	scrollok(statuswin,TRUE);
-
-	wattron(mainwin,A_BOLD);
-	wprintw(mainwin,"** SQ5BPF TETRA Monitor %s **",TELIVE_VERSION);
-	wattroff(mainwin,A_BOLD);
-
-
-
-	for (idx=0;idx<MAXUS;idx++)
-	{
-
-		wmove(mainwin,getr(idx),getcl(idx));
-		wprintw(mainwin,"%2i:",idx);
-	}
-
-	wrefresh(mainwin);
-	wrefresh(msgwin);
-	wrefresh(statuswin);
-	return(1);
-}
-
-void updopis()
-{
-	wmove(mainwin,0,32);
-	wattron(mainwin,COLOR_PAIR(4)|A_BOLD);
-	wprintw(mainwin,"MCC:%5i MNC:%5i ColourCode:%3i Down:%3.4fMHz Up:%3.4fMHz LA:%5i",netinfo.mcc,netinfo.mnc,netinfo.colour_code,netinfo.dl_freq/1000000.0,netinfo.ul_freq/1000000.0,netinfo.la);
-	wattroff(mainwin,COLOR_PAIR(4)|A_BOLD);
-	wprintw(mainwin," mutessi:%i alldump:%i mute:%i record:%i log:%i verbose:%i",mutessi,alldump,ps_mute,ps_record,do_log,verbose);
-	switch(use_filter)
-	{
-		case 0:	wprintw(mainwin," no filter"); break;
-		case  1:	wprintw(mainwin," Filter ON"); break;
-		case -1:	wprintw(mainwin," Inv. Filt"); break;
-	}
-	wprintw(mainwin," [%s] ",ssi_filter); 
-
-	ref=1;
-}
-
+/* update usage identifier display */
 void updidx(int idx) {
 	char opis[40];
 	int i;
@@ -429,6 +372,87 @@ void updidx(int idx) {
 		}
 	}
 	if (bold) wattroff(mainwin,A_BOLD);
+	ref=1;
+}
+
+void draw_idx() {
+	int idx;
+	for (idx=0;idx<MAXUS;idx++)
+	{
+		wmove(mainwin,getr(idx),getcl(idx));
+		wprintw(mainwin,"%2i:",idx);
+	}
+}
+
+/* refresh the main window */
+void display_mainwin() {
+	int idx;
+	wclear(mainwin);
+	draw_idx();
+	for (idx=0;idx<MAXUS;idx++) updidx(idx);
+	ref=1;
+}
+
+#define STATUSLINES 7
+int initcur() {
+	int maxx,maxy;
+	initscr();
+	start_color();
+	cbreak();
+	init_pair(1, COLOR_RED, COLOR_BLUE);
+	init_pair(2, COLOR_YELLOW, COLOR_BLUE);
+	init_pair(3, COLOR_RED, COLOR_GREEN);
+	init_pair(4, COLOR_WHITE, COLOR_GREEN);
+	init_pair(5, COLOR_BLACK, COLOR_YELLOW);
+	clear();
+	titlewin=newwin(1,COLS,0,0);
+	mainwin=newwin(LINES-STATUSLINES-1,COLS,1,0);
+	freqwin=newwin(LINES-STATUSLINES-1,COLS,1,0);
+	locwin=newwin(LINES-STATUSLINES-1,COLS,1,0);
+	ssiwin=newwin(LINES-STATUSLINES-1,COLS,1,0);
+	displayedwin=mainwin;
+	msgwin=newwin(STATUSLINES,COLS/2,LINES-STATUSLINES,0);
+	wattron(msgwin,COLOR_PAIR(2));
+	wbkgdset(msgwin,COLOR_PAIR(2));
+	wclear(msgwin);
+	wprintw(msgwin,"Message window\n");
+	scrollok(msgwin,TRUE);
+
+	statuswin=newwin(STATUSLINES,COLS/2,LINES-STATUSLINES,COLS/2+1);
+	wattron(statuswin,COLOR_PAIR(3));
+	wbkgdset(statuswin,COLOR_PAIR(3));
+	wclear(statuswin);
+	wprintw(statuswin,"####  Press ? for keystroke help  ####\n");
+	getmaxyx(stdscr,maxy,maxx);
+	if ((maxx!=203)||(maxy!=60)) {
+		wprintw(statuswin,"\nWARNING: The terminal size is %ix%i, but it should be 203x60\nThe program will still work, but the display may be mangled\n\n",maxx,maxy);
+	}
+	scrollok(statuswin,TRUE);
+
+	wattron(titlewin,A_BOLD);
+	wprintw(titlewin,"** SQ5BPF TETRA Monitor %s **",TELIVE_VERSION);
+	wattroff(titlewin,A_BOLD);
+
+	draw_idx();
+	ref=1;
+	return(1);
+}
+
+void updopis()
+{
+	wmove(titlewin,0,32);
+	wattron(titlewin,COLOR_PAIR(4)|A_BOLD);
+	wprintw(titlewin,"MCC:%5i MNC:%5i ColourCode:%3i Down:%3.4fMHz Up:%3.4fMHz LA:%5i",netinfo.mcc,netinfo.mnc,netinfo.colour_code,netinfo.dl_freq/1000000.0,netinfo.ul_freq/1000000.0,netinfo.la);
+	wattroff(titlewin,COLOR_PAIR(4)|A_BOLD);
+	wprintw(titlewin," mutessi:%i alldump:%i mute:%i record:%i log:%i verbose:%i",mutessi,alldump,ps_mute,ps_record,do_log,verbose);
+	switch(use_filter)
+	{
+		case 0:	wprintw(titlewin," no filter"); break;
+		case  1:	wprintw(titlewin," Filter ON"); break;
+		case -1:	wprintw(titlewin," Inv. Filt"); break;
+	}
+	wprintw(titlewin," [%s] ",ssi_filter); 
+
 	ref=1;
 }
 
@@ -518,9 +542,9 @@ int matchidx(int idx)
 }
 
 /* frequency table functions */
-#define REASON_NETINFO 0
-#define REASON_FREQINFO 1
-#define REASON_ULFREQ 2
+#define REASON_NETINFO 1<<0
+#define REASON_FREQINFO 1<<1
+#define REASON_DLFREQ 1<<2
 /* insert frequency into the freq table */
 insert_freq(int reason,uint16_t mnc,uint16_t mcc,uint32_t ulf,uint32_t dlf,uint16_t la, int rx)
 {
@@ -557,7 +581,7 @@ insert_freq(int reason,uint16_t mnc,uint16_t mcc,uint32_t ulf,uint32_t dlf,uint1
 	ptr->la=la;
 	ptr->mcc=mcc;
 	ptr->mnc=mnc;
-	ptr->reason=reason;
+	ptr->reason=ptr->reason|reason;
 	ptr->rx=rx;
 	freq_changed=1;
 }
@@ -567,13 +591,16 @@ insert_freq(int reason,uint16_t mnc,uint16_t mcc,uint32_t ulf,uint32_t dlf,uint1
 void clear_freqtable() {
 	struct freqinfo *ptr=frequencies;
 	struct freqinfo *prevptr,*nextptr;
-
+	int del;
 	if (!ptr) return;
 
 	time_t timenow=time(0);
 
 	while(ptr) {
-		if ((timenow-ptr->last_change)>FREQ_TIMEOUT) {
+		del=0;
+		if ((timenow-ptr->last_change)>FREQ_TIMEOUT) del=1; /* timed out */
+		if ((!ptr->ul_freq)&&(!ptr->dl_freq)) del=1; /* no frequency info */
+		if (del) {
 			prevptr=ptr->prev;
 			nextptr=ptr->next;
 			free(ptr);
@@ -594,41 +621,65 @@ void display_freq() {
 	char tmpstr2[64];
 	char tmpstr[256];
 	struct freqinfo *ptr=frequencies;
-	wprintw(statuswin,"Known frequencies:\n");
+	wclear(freqwin);
+	wprintw(freqwin,"***  Known frequencies:  ***\n");
 	while(ptr) {
 		tmpstr[0]=0;
 		if (ptr->dl_freq) {
-			sprintf(tmpstr2,"Downlink:%3.4fMHz ",ptr->dl_freq/1000000.0);
+			sprintf(tmpstr2,"Downlink:%3.4fMHz\t",ptr->dl_freq/1000000.0);
 			strcat(tmpstr,tmpstr2);
+		}  else {
+			strcat(tmpstr,"                    \t");
 		}
 
 		if (ptr->ul_freq) {
-			sprintf(tmpstr2,"Uplink:%3.4fMHz ",ptr->ul_freq/1000000.0);
+			sprintf(tmpstr2,"Uplink:%3.4fMHz\t",ptr->ul_freq/1000000.0);
 			strcat(tmpstr,tmpstr2);
+		} else {
+			strcat(tmpstr,"                  \t");
 		}
-		strcat(tmpstr," - ");
 
 		if (ptr->mcc) {
-			sprintf(tmpstr2,"MCC:%5i ",ptr->mcc);
+			sprintf(tmpstr2,"MCC:%5i\t",ptr->mcc);
 			strcat(tmpstr,tmpstr2);
+		} else {
+			strcat(tmpstr,"         \t");
 		}
+
 
 		if (ptr->mnc) {
-			sprintf(tmpstr2,"MNC:%5i ",ptr->mnc);
+			sprintf(tmpstr2,"MNC:%5i\t",ptr->mnc);
 			strcat(tmpstr,tmpstr2);
+		} else {
+			strcat(tmpstr,"         \t");
 		}
+
 
 		if (ptr->la) {
-			sprintf(tmpstr2,"LA:%5i ",ptr->la);
+			sprintf(tmpstr2,"LA:%5i\t",ptr->la);
 			strcat(tmpstr,tmpstr2);
+		} else {
+			strcat(tmpstr,"        \t");
 		}
 
-		sprintf(tmpstr2,"reason:%i RX:%i",ptr->reason,ptr->rx);
+		strcat(tmpstr,"reason:[");
+		if (ptr->reason&REASON_NETINFO) strcat(tmpstr,"S");
+		if (ptr->reason&REASON_FREQINFO) strcat(tmpstr,"N");
+		if (ptr->reason&REASON_DLFREQ) strcat(tmpstr,"A");
+		strcat(tmpstr,"]\t");
+		sprintf(tmpstr2,"RX:%i",ptr->rx);
 		strcat(tmpstr,tmpstr2);
-		wprintw(statuswin,"%s\n",tmpstr);
+		wprintw(freqwin,"%s\n",tmpstr);
 		ptr=ptr->next;
 	}
-	wrefresh(statuswin);
+
+	wattron(freqwin,A_BOLD);
+	wmove(freqwin,1,170);
+	wprintw(freqwin,"reasons: N:D-NWRK-BROADCAST");
+	wmove(freqwin,2,170);
+	wprintw(freqwin,"S:SYSINFO A:ChanAlloc");
+	wattroff(freqwin,A_BOLD);
+	ref=1;
 	freq_changed=0;
 }
 
@@ -732,8 +783,8 @@ void timeout_rec(time_t t)
 void refresh_scr()
 {
 	ref=0;
-	wrefresh(mainwin);
-	if (freqwin) wrefresh(freqwin);
+	wrefresh(titlewin);
+	wrefresh(displayedwin);
 	wrefresh(statuswin);
 	wrefresh(msgwin);
 }
@@ -750,15 +801,29 @@ void tickf ()
 		}
 		curplayingticks++;
 	}
-	timeout_ssis(t);
-	timeout_idx(t);
+
+	if ((t-last_1s_event)>0) {
+		clear_freqtable();
+		timeout_ssis(t);
+		timeout_idx(t);
+		last_1s_event=t;
+	}
+	if ((t-last_10s_event)>9) {
+		if ((freq_changed)&&(displayedwin==freqwin)) display_freq();
+		last_10s_event=t;
+	}
+	if ((t-last_1min_event)>59) {
+		ref=1;
+		last_1min_event=t;
+	}
+
 	timeout_curplaying(t);
 	timeout_rec(t);
-	//	if (freq_changed) display_freq();
-	clear_freqtable();
 	if (ref) refresh_scr();
 	if (last_burst) last_burst--;
 	if ((kml_changed)&&(kml_interval)&&((t-last_kml_save)>kml_interval)) dump_kml_file();
+
+
 }
 
 void keyf(unsigned char r)
@@ -838,13 +903,28 @@ void keyf(unsigned char r)
 			updopis();
 			break;
 		case 't':
-			display_freq();
+			display_state++;
+			if (display_state==DISPLAY_END) display_state=DISPLAY_IDX;
+			switch(display_state) {
+				case DISPLAY_IDX:
+					displayedwin=mainwin;
+					display_mainwin();
+					break;
+				case DISPLAY_FREQ:
+					displayedwin=freqwin;
+					display_freq();
+					break;
+				default:
+					break;
+			}
+			ref=1;
+
 			break;
 		case '?':
 			wprintw(statuswin,"HELP: ");
 			wprintw(statuswin,"m-mutessi  M-mute   R-record   a-alldump  ");
 			wprintw(statuswin,"r-refresh  s-stop play  l-log v/V-less/more verbose\n");
-			wprintw(statuswin,"f-enable/disable/invert filter F-enter filter t-display freqs\n");
+			wprintw(statuswin,"f-enable/disable/invert filter F-enter filter t-toggle windows\n");
 			wrefresh(statuswin);
 			break;
 		default: 
@@ -874,7 +954,7 @@ int getptrint(char *s,char *id,int base)
 int cmpfunc(char *c,char *func)
 {
 	if (!c) return(0);
-	if (strncmp(c,func,strlen(func)-1)==0) return(1);
+	if (strncmp(c,func,strlen(func))==0) return(1);
 	return(0);
 }
 
@@ -943,7 +1023,7 @@ int parsestat(char *c)
 			netinfo.last_change=tmptime;
 		}
 	}
-	if (cmpfunc(func,"FREQINFO")) {
+	if (cmpfunc(func,"FREQINFO1")) {
 		writeflag=0;
 		tmpmnc=getptrint(c,"MNC:",16);	
 		tmpmcc=getptrint(c,"MCC:",16);	
@@ -951,6 +1031,16 @@ int parsestat(char *c)
 		tmpulf=getptrint(c,"ULF:",10);
 		tmpla=getptrint(c,"LA:",10);
 		insert_freq(REASON_FREQINFO,tmpmnc,tmpmcc,tmpulf,tmpdlf,tmpla,rxid);
+
+	}
+	if (cmpfunc(func,"FREQINFO2")) {
+		writeflag=0;
+		tmpmnc=getptrint(c,"MNC:",16);	
+		tmpmcc=getptrint(c,"MCC:",16);	
+		tmpdlf=getptrint(c,"DLF:",10);
+		tmpulf=getptrint(c,"ULF:",10);
+		tmpla=getptrint(c,"LA:",10);
+		insert_freq(REASON_DLFREQ,tmpmnc,tmpmcc,tmpulf,tmpdlf,tmpla,rxid);
 
 	}
 	if (cmpfunc(func,"DSETUPDEC"))
