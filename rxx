@@ -59,5 +59,13 @@ export TETRA_KML_INTERVAL=3
 # usage identifier
 #export TETRA_CURPLAYING_TIMEOUT=5
 
+# TETRA_FREQ_TIMEOUT - after how long we forget frequency info
+# if unset, this will default to 600 seconds
+#export TETRA_FREQ_TIMEOUT=600
+
+# TETRA_LOCK_FILE - lock file to use between multiple instances 
+# of telive, so that they don't all play at the same time 
+#export TETRA_LOCK_FILE=/tetra/telive_lock
+
 ./telive
 

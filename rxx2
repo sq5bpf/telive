@@ -4,4 +4,8 @@ export PATH=$PATH:/tetra/bin:/tetra2/bin
 export TETRA_OUTDIR=/tetra2/in
 export TETRA_LOGFILE=/tetra2/log/telive.log
 export TETRA_PORT=7380
+# TETRA_LOCK_FILE - lock file to use between multiple instances 
+# of telive, so that they don't all play at the same time 
+#export TETRA_LOCK_FILE=/tetra/telive_lock
+
 ./telive

@@ -1,9 +1,10 @@
-/* telive v1.4 - tetra live monitor
+/* telive v1.5 - tetra live monitor
  * (c) 2014-2015 Jacek Lipkowski <sq5bpf@lipkowski.org>
  * Licensed under GPLv3, please read the file LICENSE, which accompanies 
  * the telive program sources 
  *
  * Changelog:
+ * v1.5 - added 'z' key to clear learned info, added play lock file --sq5bpf
  * v1.4 - added frequency window --sq5bpf
  * v1.3 - add frequency info --sq5bpf
  * v1.2 - fixed various crashes, made timeouts configurable via env variables --sq5bpf
@@ -38,10 +39,12 @@
 #include <sys/time.h>
 #include <time.h>
 #include <signal.h>
+#include <sys/file.h>
+#include <fcntl.h>
 
 #include "telive.h"
 
-#define TELIVE_VERSION "1.4"
+#define TELIVE_VERSION "1.5"
 
 #define BUFLEN 8192
 #define PORT 7379
@@ -51,7 +54,7 @@ int rec_timeout=30; /* after how long we stop to record a usage identifier */
 int ssi_timeout=60; /* after how long we forget SSIs */
 int idx_timeout=8; /* after how long we disable the active flag */
 int curplaying_timeout=5; /* after how long we stop playing the current usage identifier */
-
+int freq_timeout=600; /* how long we remember frequency info */
 
 
 char *outdir;
@@ -69,6 +72,10 @@ int kml_interval;
 int last_kml_save=0;
 int kml_changed=0;
 int freq_changed=0;
+
+char *lock_file=NULL;
+int lockfd=0;
+int locked=0;
 
 /* various times for scheduling in tickf() */
 time_t last_1s_event=0;
@@ -90,7 +97,7 @@ WINDOW *freqwin=0; /* frequency window */
 WINDOW *ssiwin=0; /* SSI window */
 WINDOW *locwin=0; /* Location window */
 WINDOW *displayedwin=0; /* the window currently displayed */
-int ref; /* window refresh flag */
+int ref; /* window refresh flag, set to refresh all windows */
 
 char prevtmsg[BUFLEN]; /* contents of previous message */
 
@@ -320,6 +327,19 @@ void dump_kml_file() {
 	kml_changed=0;
 }
 
+/* delete the whole location info */
+void clear_locations() {
+	struct locations *ptr=kml_locations;
+	struct locations *nextptr;
+	while(ptr) {
+		nextptr=ptr->next;
+		free(ptr->description);
+		free(ptr);
+		ptr=nextptr;
+	}
+	kml_locations=NULL;
+}
+
 #define MAXUS 64
 struct usi ssis[MAXUS];
 
@@ -444,7 +464,7 @@ void updopis()
 	wattron(titlewin,COLOR_PAIR(4)|A_BOLD);
 	wprintw(titlewin,"MCC:%5i MNC:%5i ColourCode:%3i Down:%3.4fMHz Up:%3.4fMHz LA:%5i",netinfo.mcc,netinfo.mnc,netinfo.colour_code,netinfo.dl_freq/1000000.0,netinfo.ul_freq/1000000.0,netinfo.la);
 	wattroff(titlewin,COLOR_PAIR(4)|A_BOLD);
-	wprintw(titlewin," mutessi:%i alldump:%i mute:%i record:%i log:%i verbose:%i",mutessi,alldump,ps_mute,ps_record,do_log,verbose);
+	wprintw(titlewin," mutessi:%i alldump:%i mute:%i record:%i log:%i verbose:%i lock:%i",mutessi,alldump,ps_mute,ps_record,do_log,verbose,locked);
 	switch(use_filter)
 	{
 		case 0:	wprintw(titlewin," no filter"); break;
@@ -541,6 +561,23 @@ int matchidx(int idx)
 	return(j);
 }
 
+/* locking functions */
+int trylock() {
+	int i;
+	if (!lockfd) return(1);
+	i=flock(lockfd,LOCK_EX|LOCK_NB);
+	if (!i) { locked=1; updopis(); return(1); }
+	return(0);
+}
+
+void releaselock() {
+	int i=locked;
+	locked=0;
+	if (i) updopis();
+	if (!lockfd) return;
+	flock(lockfd,LOCK_UN);
+}
+
 /* frequency table functions */
 #define REASON_NETINFO 1<<0
 #define REASON_FREQINFO 1<<1
@@ -587,7 +624,6 @@ insert_freq(int reason,uint16_t mnc,uint16_t mcc,uint32_t ulf,uint32_t dlf,uint1
 }
 
 /* clear the freq table, delete old frequencies */
-#define FREQ_TIMEOUT 600 /* 10 minutes, hardcoded for now */
 void clear_freqtable() {
 	struct freqinfo *ptr=frequencies;
 	struct freqinfo *prevptr,*nextptr;
@@ -598,7 +634,7 @@ void clear_freqtable() {
 
 	while(ptr) {
 		del=0;
-		if ((timenow-ptr->last_change)>FREQ_TIMEOUT) del=1; /* timed out */
+		if ((timenow-ptr->last_change)>freq_timeout) del=1; /* timed out */
 		if ((!ptr->ul_freq)&&(!ptr->dl_freq)) del=1; /* no frequency info */
 		if (del) {
 			prevptr=ptr->prev;
@@ -615,6 +651,19 @@ void clear_freqtable() {
 		}
 		ptr=ptr->next;
 	}
+}
+
+/* delete the whole frequency table */
+void clear_all_freqtable() {
+	struct freqinfo *ptr=frequencies;
+	struct freqinfo *nextptr;
+
+	while(ptr) {
+		nextptr=ptr->next;
+		free(ptr);
+		ptr=nextptr;
+	}
+	frequencies=NULL;
 }
 
 void display_freq() {
@@ -688,9 +737,10 @@ int findtoplay(int first)
 {
 	int i;
 	if (curplayingidx) return(0);
+	releaselock();
 
 	for (i=first;i<MAXUS;i++) {
-		if ((ssis[i].active)&&(!ssis[i].encr)&&(matchidx(i))) {
+		if ((ssis[i].active)&&(!ssis[i].encr)&&(matchidx(i)&&(trylock()))) {
 			curplayingidx=i;
 			if (verbose>0) wprintw(statuswin,"NOW PLAYING %i\n",i);
 			ref=1;
@@ -698,7 +748,7 @@ int findtoplay(int first)
 		}
 	}
 	for (i=0;i<first;i++) {
-		if ((ssis[i].active)&&(!ssis[i].encr)&&(matchidx(i))) {
+		if ((ssis[i].active)&&(!ssis[i].encr)&&(matchidx(i)&&(trylock()))) {
 			curplayingidx=i;
 			if (verbose>0) wprintw(statuswin,"NOW PLAYING %i\n",i);
 			ref=1;
@@ -722,7 +772,7 @@ void timeout_ssis(time_t t)
 			}
 
 		}
-		//przesun zeby sie zaczynalo od 0
+		/* move the array elements so that the indexes start at 0 */
 		for (j=0;j<2;j++) {
 			if (!ssis[i].ssi[j]) {
 				ssis[i].ssi[j]=ssis[i].ssi[j+1];
@@ -920,16 +970,24 @@ void keyf(unsigned char r)
 			ref=1;
 
 			break;
+		case 'z':
+			clear_all_freqtable();
+			clear_locations();
+			if (displayedwin==freqwin) display_freq();
+			wprintw(statuswin,"cleared frequency and location info\n");
+			ref=1;
+			break;
 		case '?':
 			wprintw(statuswin,"HELP: ");
 			wprintw(statuswin,"m-mutessi  M-mute   R-record   a-alldump  ");
 			wprintw(statuswin,"r-refresh  s-stop play  l-log v/V-less/more verbose\n");
 			wprintw(statuswin,"f-enable/disable/invert filter F-enter filter t-toggle windows\n");
-			wrefresh(statuswin);
+			wprintw(statuswin,"z-forget learned info\n");
+			ref=1;
 			break;
 		default: 
-			wprintw(statuswin,"unknown key %c\n",r);
-			wrefresh(statuswin);
+			wprintw(statuswin,"unknown key [%c] 0x%2.2x\n",r,r);
+			ref=1;
 	}
 }
 
@@ -1246,10 +1304,18 @@ void get_cfgenv() {
 		kml_interval=0;
 	}
 
+	if (getenv("TETRA_LOCK_FILE"))
+	{
+		lock_file=getenv("TETRA_LOCK_FILE");
+		lockfd=open(lock_file,O_RDWR|O_CREAT,0600);
+		if (lockfd<1) lockfd=0;
+	}
+
 	if (getenv("TETRA_REC_TIMEOUT")) rec_timeout=atoi(getenv("TETRA_REC_TIMEOUT"));
 	if (getenv("TETRA_SSI_TIMEOUT")) ssi_timeout=atoi(getenv("TETRA_SSI_TIMEOUT"));
 	if (getenv("TETRA_IDX_TIMEOUT")) idx_timeout=atoi(getenv("TETRA_IDX_TIMEOUT"));
 	if (getenv("TETRA_CURPLAYING_TIMEOUT")) curplaying_timeout=atoi(getenv("TETRA_CURPLAYING_TIMEOUT"));
+	if (getenv("TETRA_FREQ_TIMEOUT")) freq_timeout=atoi(getenv("TETRA_FREQ_TIMEOUT"));
 
 }
 
