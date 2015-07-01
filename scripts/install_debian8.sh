@@ -19,7 +19,7 @@ verify_prerequisites() {
 	#comment this out if you know what you're doing :)
 	if [ "$MAJVER" != 8 ]; then
 		echo "This will only work under debian 8, aborting install..."
-		exit 1
+		exit 1 #comment out this line if you want to install on another distribution
 	fi
 
 	#check sudo
@@ -52,7 +52,7 @@ install_packages() {
 		sudo apt-get -y install gnuradio gnuradio-dev gr-osmosdr gr-iqbal
 	fi
 
-	sudo apt-get -y install git make libtool libncurses5-dev build-essential autoconf automake vorbis-tools sox alsa-utils unzip
+	sudo apt-get -y install git make libtool libncurses5-dev build-essential autoconf automake vorbis-tools sox alsa-utils unzip xterm
 
 
 }
