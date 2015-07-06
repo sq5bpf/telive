@@ -9,7 +9,10 @@
 #
 # I disclaim any liability for things that this software does or doesn't do.
 # Everything is the responsibility of the user.
-
+#
+# Changelog:
+# 20150706: forbid running script as root --sq5bpf
+#
 
 TETRADIR=~/tetra
 verify_prerequisites() {
@@ -22,6 +25,12 @@ verify_prerequisites() {
 		exit 1 #comment out this line if you want to install on another distribution
 	fi
 
+	#check if running as root
+	if [ `id -u` = 0 ]; then
+		echo "You are running this as root. Please run as a normal user, and configure sudo for this user"
+		exit 1
+	fi
+
 	#check sudo
 	echo "Checking sudo..."
 	which sudo >/dev/null ; RET=$?
@@ -32,6 +41,8 @@ verify_prerequisites() {
 		echo "echo \"`whoami`	ALL=(ALL:ALL) ALL\" >> /etc/sudoers"
 		exit 2
 	fi
+
+	echo "Now trying sudo, please provide your password if asked"
 	ROOTID=`sudo id -un`
 	if [ "$ROOTID" != "root" ]; then
 		echo "sudo is installed, but not configured correctly, or you gave it the wrong password"
