@@ -32,12 +32,12 @@ do_distro_specific_stuff() {
 
 		"debian")
 			DISTRO_NAME="debian"
-			DISTRO_VERSION=`get_osr VERSION`
+			DISTRO_VERSION=`get_osr VERSION_ID`
 			;; 
 		"ubuntu")
 			#this is either ubuntu or linux mint
 			DISTRO_NAME="ubuntu"
-			DISTRO_VERSION=`get_osr VERSION|cut -d . -f 1` # do far we're only interested in the major version here
+			DISTRO_VERSION=`get_osr VERSION_ID|cut -d . -f 1` # do far we're only interested in the major version here
 			;;
 		*)
 			echo "Unknown distribution"
@@ -126,7 +126,7 @@ install_gnuradio() {
 		*)
 			#unknown distro, not sure what to do here. maybe pretend everything is ok and install? :)
 			echo "Unknown distribution (this should not happen :), for now we'll pretend that it has the right gnuradio packages"
-			sudo apt-get -y install gnuradio gnuradio-dev gr-osmosdr gr-iqbal rqrx && return 0
+			sudo apt-get -y install gnuradio gnuradio-dev gr-osmosdr gr-iqbal gqrx && return 0
 			;;
 	esac
 	return 1
