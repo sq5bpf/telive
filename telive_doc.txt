@@ -10,41 +10,41 @@ https://github.com/sq5bpf/telive/raw/master/telive_doc.pdf
 
 Description
 
-Telive is a program which can be used to display information like signaling, calls, SDS, location information etc from a TMO Tetra network. It is also possible to log the signalling information, listen to the audio in realtime and to record the audio. Playing the audio and re-compressing it into ogg is done via external scripts. The software is based upon slightly modified osmocom-tetra software. Location information can be written to a KML file, to be opened in Google Earth and similar software.
+Telive is a program which can be used to display information like signaling, calls, SDS, location information etc from a TMO Tetra network. It is also possible to log the signalling information, listen to the audio in realtime and to record the audio. Playing the audio and re-compressing it into ogg is done via external scripts. The software is based upon modified osmocom-tetra software. Location information can be written to a KML file, to be opened in Google Earth and similar software.
 
 Prerequisites
 
-	Before installing please read all licenses, disclaimers, documentation for all installed packages, and about the Tetra protocol (i will not explain term like MNC, Colour Code, Usage identifier, SSI etc). Read this whole document, preferably multiple times. 
+	Before installing please read all licenses, disclaimers, documentation for all installed packages, and about the Tetra protocol (i will not explain term like MNC, Colour Code, Usage identifier, SSI etc).
 
-	The software was tested on Debian GNU/Linux 6.0, 7.0 and 8.0 64 bit versions. Other linux distributions should work, but i have not tested them. It should probably be possible to run this software on other systems, but i haven't tried, and don't intend to (however if it works for you, please send me a detailed description so that i can add it to the docs). The software is compatible with gnuradio 3.6 and 3.7 (newer versions, 3.7.2 doesn't work, 3.7.5 does), with the osmosdr source block.
+	The software was tested on Debian GNU/Linux 8 using the install_telive.sh script and gnuradio from debian packages, and Debian GNU/Linux 6.0 and 7.0 with gnuradio compiled via the build-sbrac script. Other linux distributions should work, but i have not tested them. It should probably be possible to run this software on other systems, but i haven't tried, and don't intend to (however if it works for you, please send me a detailed description so that i can add it to the docs).
 
-	Receiving is done using a RTL2832/R820T DVB-T USB dongle. Probably other receivers supported by gnuradio will work with minor modifications (people have successfully run it with the funcube dongle, hackrf and other hardware).
+	Receiving is done using a RTL2832/R820T DVB-T USB dongle. Probably other receivers supported by gnuradio will work with minor modifications.
 
-	To simplify things, a install_debian8.sh script is provided to build and install everything under Debian 8 (see the FAQ section: How do I install under Debian 8), use this unless you have a valid reason to install manually.
+Easy install
 
-Manual Install:
+The following script can be used to install everything automatically under Debian 8, Ubuntu 14, and Linux Mint 17.2. With minor modifications it should also work under Debian 6/7 and other debian-like distributions, if a supported gnuradio version is installed via some other way - either using pybombs or the SBRAC build-gnuradio script. To install verify that you have sudo configured for your user, and that you have internet access, and do this:
 
-Getting GNURadio
+wget https://raw.githubusercontent.com/sq5bpf/telive/master/scripts/install_telive.sh
+# now here you should read the script, don't just blindly run scripts off the internet
+chmod 755 install_telive.sh
+./install_telive.sh
 
-	A supported gnuradio version can be installed either from the distribution packages (gnuradio 3.6 on Kali Linux and gnuradio 3.7.5 on Debian 8 are known to work), by building it with pybombs (not covered here, but described on many web pages), or by building it with the SBRAC build-gnuradio script (supports both versions 3.6 and 3.7, please see the "How do I install gnuradio using the build-gnuradio script" section in the FAQ). Use gnuradio 3.7.x (where x>=5), unless there is a valid reason to use gnuradio 3.6 (such as other software which requires version 3.6).
+Manual install 
 
-Installing the patched Osmo-tetra, codecs, telive et al
+This has been moved to the FAQ section "How can I manually compile/install this software?". Please use the Easy install script whenever possible.
 
-	This is moved to the FAQ section "How do I manually install the osmo-tetra-sq5bpf, codecs, telive".
 
-	
 Optional step
 
-	If your network provides location information, then install Google Earth.
-	Get the latest wireshark, preferably the latest version from the repository (the packages on recent distributions may work too).  Wireshark can parse GSMTAP messages which are sent via tetra-rx and display the decoded Tetra frames.
-	Install some convenient music player to play the recorded ogg files. Audacious is one example of such player.
+	Get the latest wireshark from the repository. Wireshark can parse GSMTAP messages which are sent via tetra-rx and display the decoded Tetra frames. Also install some music player, which can play ogg files (most of them can), such as audacious.
+
 
 Theory of operation
 
 	Please refer to Fig 2. The RF signal is received via na rtl-sdr dongle and gnuradio (the receiver is conveniently provided as an gnuradio-companion flow graph to aid easy modification). The received channel is passed via a named pipe /tmp/fifo1 to a CQPSK demodulator simdemod2.py. The demodulator output is fed to float_to_bits ("bit slicer"), and further to tetra-rx (which decodes the tetra protocol). tetra-rx sends some packets encapsulated in UDP to localhost. These packets are received with the telive program.  
 	The telive program shows a list of possible usage identifiers (0-63, where 0-2 are reserved), and aggregates signaling information (SSI addresses etc) for each usage identifier. If there are any voice frames, then this information can be recorded or played back immediately. Later the recording is renamed to a filename containing the date, time and the last 3 SSI numbers seen for this usage identifier. 
 	The tetra-rx program has been modified to receive SDS messages, and these messages can be logged by the telive program.
-The telive program has these settings, displayed on the top line of the screen:
+The telive program has these settings:
 
 mutessi - allow recording and playback of data for a usage identifier with no SSI data (useful, because it supressed the playback of encrypted data)
 alldump - don't filter signaling information, show all in the log and in the message window
@@ -52,13 +52,13 @@ mute - mute playback audio (but not the recording)
 record - record audio
 log - log signalling information to file (default telive.log)
 verbose - verbosity level (more shows more debug info)
-lock - shows if this telive instance is prohibited from playing by another telive instance
+
 Fig 1. telive program screen
 Keyboard commands:
-? - show keystroke help in the status window
+? - show help in the status window
 m - toggle mutessi
 M - toggle mute
-r - refresh screen (warning: segfaults sometimes, to be fixed)
+r - refresh screen
 R - toggle record
 a - toggle alldump
 l - toggle logging
@@ -66,18 +66,15 @@ s - stop play (if there are multiple channels active, this will end the active p
 V/v - increase/decrease verbosity
 f - toggle SSI filter disabled/enabled/inverted
 F - enter SSI filter expression
-t - switches between main window/frequency window (and other implemented in the future)
-z - forgets any information that was learned about this network
+t - toggle between the usage identifier window, and the window showing network information
+z - forget all information learned by telive
 
 	The numbers 0-63 are the usage identifiers. If you see OK near the number then there is voice traffic present on it. If you see PLAY then this is the currently playing channel.
-	There can be multiple tetra-rx programs feeding data to one telive process, but be certain that they are on the same tetra network (same uplink/downlink, same colour code, same LA etc) - refer to Fig 3 for an example. It is also possible to feed totally different channels (from one or more gnuradio instance), each to its own named pipe, have many processes to decode them, and feed multiple telive processes from the receiver processes. 
+	There can be multiple tetra-rx programs feeding data to one telive process, but be certain that they are on the same tetra network (same uplink/downlink, same colour code etc) - refer to Fig 3 for an example. It is also possible to feed totally different channels (from one or more gnuradio instance), each to its own named pipe, have many processes to decode them, and feed multiple telive processes from the receiver processes. 
 	The message window shows tetra signaling messages (SETUP, RELEASE etc). The status window will show various information regarding program status (depending on the verbosity level), and text SDS messages.
 	Telive records the calls in in ACELP codec format. You can use the script tplay to play them, or tetrad to automatically encode them into OGG format. 
 	Telive has the ability to filter the usage identifiers which are played live based upon SSIs. The filter expression is the same as shell wildcards in the ksh shell (see the FAQ for some examples). The expression can either be passed in an environment variable, or you can press F (capital f) and enter the expression. The filtering can either be disabled, enabled (only conversations with SSIs matching the filter are played live), or inverted (only conversations with SSIs NOT matching the filter are played live). The filtering mode is toggled with f (small f).
 	Telive can periodically log location information into a KML file (see the FAQ for some examples).  Currently LIP Short Location Report, and a proprietary Simple Location System User Application 0x80 used in Spain (not sure what company is behind this). KML files can be opened in software like Google Earth. 
-	Pressing z will toggle windows, showing either the usage identifiers or a list of frequencies that the network broadcasts in various messages.
-
-Note: the following examples were written for gnuradio 3.6, for version 3.7 use the flowgraphs with _gr37 in the filename (for example  telive_1ch_simple_gr37.grc). 
 
 Simple 1 channel setup example:
 
@@ -85,13 +82,9 @@ This is a simple receiver for one frequency only (it is best to use the control 
 
 
 Fig 2. Simple one channel receiver
-
 Open an xterm, change directory to the  osmo-tetra-sq5bpf/src directory and execute
 ./receiver1 1
 There should be no errors. This creates /tmp/fifo1 , and listens for incoming data, piping it into simdemod2.py, float_to_bits and tetra-rx 
-
-
-
 
 Open another xterm with:
 /usr/bin/xterm -font  fixed -bg black -fg white -geometry 203x60
@@ -111,7 +104,6 @@ This is a receiver for two frequencies,  preferably one signaling channel, and s
 
 
 Fig 3. Two channel receiver setup
-
 Open an xterm, change directory to the  osmo-tetra-sq5bpf/src directory and execute
 ./receiver1 1
 There should be no errors. This creates /tmp/fifo1 , and listens for incoming data, piping it into simdemod2.py, float_to_bits and tetra-rx 
@@ -173,8 +165,6 @@ This telive process will listen to 7380/udp
 
 Connect a rtl-sdr dongle and antenna. Open telive_4ch.grc (from the telive/gnuradio-companion directory) in gnuradio-companion, and run it. Currently  telive_4ch.grc defaults to 435.500MHz, 434.750MHz, 435.750MHz, 435.800MHz  and 56ppm. Please adjust the tuner main frequency, offsets and ppm to receive a known strong tetra signal (preferably unencrypted). Correct the ppm value so that the spectrum looks "symmetrical".
 
-If there is voice traffic in both networks, then both telive instances will play at the same time. The locking feature can be used to make only one instance play at a time. To do so please uncomment the export TETRA_LOCK_FILE=/tetra/telive_lock line in rxx and rxx2.
-
 Other setups
 
 Please look at the scripts and the program sources. You can use multiple gnuradio receivers each with its own rtl-sdr dongle, and feed the results via named pipes to multiple receiver processes. The results can be displayed via multiple telive processes, each for one Tetra network.
@@ -184,20 +174,18 @@ List of gnuradio-companion flowgraphs
 There are several flowgraphs in telive/gnuradio-companion:
 telive_1ch.grc, telive 2ch.grc ? upto telive_6ch.grc - 1,2 ? 6 channel receivers
 telive_1ch_simple.grc - this receiver doesn't require setting of the offset, presents also the full band spectrum, and has click-to-tune capability (and should be generally more user-friendly)
-The files with _gr37 in the name are for gnuradio 3.7.
-
 
 End notes
 
-This is code that i've written for my own pleasure. It is very ugly, but i could either polish it so it looks nice, or "release early, release often" (per the open source methodology). Polishing it would take forever, and i believe that if one has a nice toy, he should share it with other children, rather then keep it to himself.
+This is code that i've written for my own pleasure. It is very ugly, but i've could either polish it so it looks nice, or "release early, release often" (per the open source methodology). Polishing it would take forever, and i believe that if one has a nice toy, he should share it with other children, rather then keep it to himself.
 
-This code runs under linux, and was tested under Debian 6.0,7.0 and 8.0 64-bit versions. I will not answer questions how to make it work under operating systems different than linux, however if you make it work, send me a description, so that i can put it into the documentation. Also i haven't really tried to make this user-friendly. The documentation is crap, despite my best efforts to write it. Basically read all of the documentation, the ETSI Tetra docs, and if you still don't understand something, then RTFS.
-The architecture is modular, and you could probably use another receiver instead of gnuradio (like rtl_fm and some software to recode the output to a supported format). This hasn't been tried, but should work, and should result in less CPU utilization.
-The telive program uses the usage identifier as the key. This concept works, but is not correct. A more correct approach would be to use the notification id and receiver id. This will probably be implemented in some later version. The SDS decoding might not work in many cases. Many protocols used over SDS are proprietary, but I will try to support them if any info is avaliable.
+This code runs under linux, and was tested under Debian 6, 7 and 8 64-bit versions. I will not answer questions how to make it work under operating systems different than linux, however if you make it work, send me a description, so that i can put it into the documentation. Also i haven't really tried to make this user-friendly. The documentation is crap, despite my best efforts to write it. Basically read all of the documentation, the ETSI Tetra docs, and if you still don't understand something, then RTFS.
+The architecture is modular, and you could probably use another receiver instead of gnuradio (like rtl_fm). This hasn't been tried, but should work, and should result in less CPU utilization.
+The telive program uses the usage identifier as the key. This concept works, but is not correct. A more correct approach would be to use the notification id and receiver id. This will probably be implemented in some later version. The SDS decoding might not work in many cases. So far i've seen only type 0x82 (Text messaging), 8 bit encoding type SDS. 7-bit decoding might not work etc. 
 
 If you can provide samples of  interesting traffic legally, then please do. It would be best if you have your own TMO Tetra network, that you could monitor, while changing various settings etc.
 
-The core of this software: osmocom-tetra, libosmocore was written by Osmocom (i've only filled in some blanks, that others probably didn't want to fill in). As stated on their web page http://tetra.osmocom.org/trac/wiki/FAQ "Can I use OsmocomTETRA to listen to police radio?
+The core of this software: osmocom-tetra, libosmocore was written by Osmocom (i've only filled in some blanks, that others probably didn't want to fill in, such as the SDS decoder etc). As stated on their web page http://tetra.osmocom.org/trac/wiki/FAQ "Can I use OsmocomTETRA to listen to police radio?
  [...] Also, if this is your interest in this project: Please simply go away, we don't want to talk to you. " - please respect this.
 
 
@@ -209,6 +197,7 @@ I disclaim any liability because of the use of this software. If someone breaks 
 TODO
 
 Implement a better protocol to communicate with telive
+Implement Location Information Protocol and Data Services
 Don't use popen() for playback because of buffering.
 Actually try to read the ETSI docs and not fall asleep after 20 pages.
 Clean up the code, rewrite all comments in english (if there are any polish comments or variable names left).
@@ -226,11 +215,11 @@ The TETRA standard is avaliable from ETSI, go to http://etsi.org and search for 
 
 What operating systems does it run on?
 
-It runs on linux. It was developed under Debian 6.0,  7.0 and 8.0 (all 64-bit). Others have reported that it works under Kali linux, Mint and Ubuntu. Any Unix/Linux operating system should work with some tweaking (preferably the debian-based ones), if you can get a supported gnuradio version working on it. 
+It runs on linux. It was developed under Debian 6.0 64-bit and Debian 7.0 64-bit, later ebian 8 with gnuradio 3.7. Others have reported that it works under Kali linux, Mint and Ubuntu. Any Unix/Linux operating system should work with some tweaking, if you can get gnuradio working on it. 
 
 Does it work on Microsoft windows?
 
-No. And i'm not interested in it. However you can run it in a virtual machine, some have reported success when running under vmware player, and under virtualbox. Beware that a virtual machine doesn't run as fast as a normal installation, and might not be suitable for more advanced setups (monitoring multiple channels etc). Also there are issues regarding access to USB devices from virtual machines.
+No. And i'm not interested in it. However you can run it in a virtual machine. Beware that a virtual machine doesn't run as fast as a normal installation, and might not be suitable for more advanced setups (monitoring multiple channels etc).
 
 I don't understand all this, could you provide a nice description how to get it to work for people who don't know much about computers or radio?
 
@@ -261,14 +250,7 @@ Beware that this will eat away many megabytes of disk space per minute.
 
 I don't hear anything or something stutters, but the recordings are fine if I play them on another system
 
-This has nothing to do with telive. Find some wave file and play it using aplay. Fiddle with the system until it's fixed (maybe change the mixer settings? See support forums for your distribution for possible fixes). 
-
-Stuttering is often caused by not enough cpu power avaliable, often when monitoring multiple channels, or when running under a virtual machine (which is not recommended also for this reason). You can lower the cpu load by:
-stopping the spectrum display
-monitor less channels
-don't run additional software (especially Google Earth), or run it on another computer 
-using a lower sample rate for the rtl-sdr dongle (search the internet for supported rates for your receiver)
-check if your computer is running at full speed, disable laptop-mode, look at cpufreq etc
+This has nothing to do with telive. Find some wave file and play it using aplay. Fiddle with the system until it's fixed (maybe change the mixer settings? See support forums for your distribution for possible fixes).
 
 The telive program exits when it sees voice traffic. Why?
 
@@ -304,6 +286,7 @@ To use a filter you have to enter a filter expression, either by pressing F and 
 
 ? wildcard that matches one character
 * wildcard that matches any amount of characters (don't use this for SSIs)
+
 [1-5] matches 1,2,3,4,5
 [2389] matches 2,3,8,9
 [this is from https://ftp.gnu.org/old-gnu/Manuals/glibc-2.2.3/html_chapter/libc_10.html ]
@@ -355,8 +338,7 @@ TETRA_SSI_DESCRIPTIONS - name of the file containing textual descriptions of SSI
 TETRA_KEYS - contains a list of characters that will be parsed by telive, just as keystrokes would (so for example if you set it to Rff it will enable record  and inverted SSI filter), don't use this for inputting the filter expression (use TETRA_SSI_FILTER for this)
 TETRA_KML_FILE - if set, the locations will be written periodically to this  file in KML format
 TETRA_KML_INTERVAL - this will set the maximum KML file refresh rate. If unset, this will default to 30 seconds
-TETRA_LOCK_FILE - if this is set, then this filename will be used for locking between telive instances
-Please look at the rxx script where some of these variables are set.
+Please look at the rxx script where some of these variables are set, it also contains descriptions of other variables not documented here.
 
 How can I access location information?
 
@@ -372,60 +354,33 @@ Can I use a different receiver?
 
 You can use any receiver that will be able to write baseband data to a pipe in the same format as gnuradio does.
 
-How do I automagically install everything under Debian 8
+How can I manually compile/install this software? 
 
-There is an experimental script to install everything under Debian 8. It will compile/install gnuradio, osmo-tetra-sq5bpf, codecs and telive. The 
+This section is intended only for people who would like to install on distributions which are not supported by the easy install procedure using install_telive.sh. Please use the easy install procedure whenever you can. Please study the install_telive.sh script first anyway.
 
-Steps to install:
-install Debian 8, preferably 64-bit
-ensure that you have internet access.
-setup sudo, with privileges for your regular user (search the internet if you don't know how to do this)
-check if sudo works, for example like this:
-sudo id
-[sudo] password for YOURUSER: 
-uid=0(root) gid=0(root) groups=0(root)
+Packages from your distribution
 
-as your regular user:
+Install oggenc (package vorbis-tools under debian), sox (package sox), aplay (package alsa-utils), ncurses development libraries (package libncurses-dev). You will need all of the development packages, but that will be installed by build-gnuradio. If you have installed any gnuradio packages, then uninstall/purge them.
 
-wget https://raw.githubusercontent.com/sq5bpf/telive/master/scripts/install_debian8.sh
-chmod 755 install_debian8.sh
-# now here you should read the script, don't just blindly run scripts off the internet
-./install_debian8.sh 
-read the script output, look if there are any errors etc
+Gnuradio 3.6 or 3.7.x (3.7.5 or higher) with osmosdr support. 
+Please see this page:
+https://gnuradio.org/redmine/projects/gnuradio/wiki/InstallingGRFromSource
 
-The whole installation should take only a few minutes. 
+Probably the easiest way is to use the build-gnuradio script provided by SBRAC:
 
-Adventurous users can try to use this under other linux distributions: first install gnuradio 3.7.5 (or higher), comment out the version check in the script, and run the script.  Doing this is left as an exercise to the reader :)
+http://www.sbrac.org/files/build-gnuradio
 
-How do I install gnuradio using the build-gnuradio script
-
-Probably the easiest way is to use the build-gnuradio script provided by SBRAC. It supports OpenSuSE, Debian,  Ubuntu, Mint, Fedora, Redhat.
-
-Make sure you have sudo privileges. 
-wget http://www.sbrac.org/files/build-gnuradio
-chmod 755  build-gnuradio
-
-To install gnuradio 3.7 please run ./build-gnuradio 
-To install gnuradio 3.6 please run ./build-gnuradio -o
-
-New installations should use gnuradio 3.7. The gnuradio 3.6 support was known to be broken a few times in this script, and it should be only used when 3.6 compatibility is needed for some other software.
-
-This script is widely used by many people, if you run into a bug, then search the internet for answers (and don't bug me, as i'm not the author).
+Please run ./build-gnuradio (installs gnuradio 3.7)
+or ./build-gnuradio -o  (the -o parameter installs version 3.6, use this only if you need version 3.6 for some other software).
 
 After building, test if the software works. There are many gnuradio-companion scripts on the internet, see if they work, and also use them to find the right ppm value for your rtl-sdr dongle.
 
-
-How do I manually install the osmo-tetra-sq5bpf, codecs, telive 
-
-Please install the following software from your distribution: oggenc (package vorbis-tools under debian), sox (package sox), aplay (package alsa-utils), ncurses development libraries (package libncurses-dev). You will need all of the development packages (make, gcc, git etc, under debian most of this is in build-essential). The following assumes that you have sudo privileges.
-
-
-- libosmocore-sq5bpf
+libosmocore-sq5bpf
 
 This is Osmocom libosmocore, the original software is here:
 http://bb.osmocom.org/trac/wiki/libosmocore
 Please read all documentation for this project. 
-The version in my repository is not patched in any way, but may be patched in the future. It is there only to insure that the version doesn't change.
+The version in my repository is not patched in any way, but may be patched in the future.
 To compile and install:
 git clone https://github.com/sq5bpf/libosmocore-sq5bpf
 cd libosmocore-sq5bpf
@@ -434,7 +389,7 @@ autoreconf -i
 make
 sudo make install
 
-- osmo-tetra-sq5bpf
+osmo-tetra-sq5bpf
 
 This is a patched version of Osmocom osmo-tetra, the original software is here:
 http://tetra.osmocom.org/trac/wiki/osmo-tetra
@@ -447,9 +402,17 @@ make
 
 The scripts receiver1 and receiver2 assume that you are in this directory (osmo-tetra-sq5bpf/src).
 
+Tetra codecs
 
+	Please read the instructions in osmo-tetra-sq5bpf/etsi_codec-patches , including README_sq5bpf. This shows how to obtain and compile the codecs. Put the tetra codecs in /tetra/bin (created in the next step).
 
-- telive
+To compile/install:
+ git clone https://github.com/sq5bpf/install-tetra-codec
+ cd install-tetra-codec 
+ chmod 755 install.sh
+./install.sh
+
+telive
 
 To compile:
 git clone https://github.com/sq5bpf/telive
@@ -461,24 +424,6 @@ chmod 755 install.sh
 ./install.sh
 
 The scripts rxx and rxx2 assume that you are in this directory.
-
-- tetra codecs
-
-	Please read the instructions in osmo-tetra-sq5bpf/etsi_codec-patches , including README_sq5bpf. This shows how to download, patch and compile the codecs. If building by hand put the tetra codecs in /tetra/bin (created in the next step).
-
-To automatically download/compile/install:
-git clone https://github.com/sq5bpf/install-tetra-codec
-cd install-tetra-codec
-# Read the README.md file
-chmod 755 install.sh
-./install.sh
-
-This should download and compile the codec. 
-It will be installed to /tetra/bin (sudo privileges are needed if /tetra is not writeable by the user).
-
-View the install.sh script to see how it works, change presets etc.
-
-Be sure to read the licensing information for the codecs on the ETSI web page.
 
 
 tetra-rx reports Air Encryption:1, does this mean that all is encrypted?
@@ -555,7 +500,7 @@ Well, actually not. The protocol specifications were publicly available for a lo
 
 Changelog:
 
-20150824: updated to version 1.5 , added new install info etc --sq5bpf
+20151030: added info about version 1.5 and about install_telive.sh --sq5bpf
 20150228: added info what TETRA_KML_INTERVAL is for --sq5bpf
 20150227: added info about version 1.0 and using location information --sq5bpf
 20150130: added info about version 0.9 --sq5bpf

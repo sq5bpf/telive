@@ -222,3 +222,15 @@ echo "All of the files are in `pwd`"
 echo
 echo "PLEASE, before proceeding read the manual in `pwd`/telive/telive_doc.pdf"
 
+#copy the manual, maybe some user will notice it is there and actually read it?
+if [ -d ~/Desktop ]; then
+	cp "`pwd`/telive/telive_doc.pdf" ~/Desktop
+	echo "or the telive_doc.pdf file on the desktop"
+fi
+
+echo 
+echo "The most up to date version of the manual is always located here:"
+echo "https://github.com/sq5bpf/telive/raw/master/telive_doc.pdf"
+
+
+
