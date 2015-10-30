@@ -121,7 +121,7 @@ install_gnuradio() {
 				return 0
 			;;
 		"ubuntu 15") #not sure this will work, but i think ubuntu 15.x has modern gnuradio
-			sudo apt-get -y install gnuradio gnuradio-dev gr-osmosdr gr-iqbal gqrx && return 0
+			sudo apt-get -y install gnuradio gnuradio-dev gr-osmosdr gr-iqbal gqrx-sdr && return 0
 			;;
 		*)
 			#unknown distro, not sure what to do here. maybe pretend everything is ok and install? :)
