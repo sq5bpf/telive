@@ -105,7 +105,7 @@ install_gnuradio() {
 
 	case "$DISTRO" in
 		"debian 8")
-			sudo apt-get -y install gnuradio gnuradio-dev gr-osmosdr gr-iqbal gqrx && return 0
+			sudo apt-get -y install gnuradio gnuradio-dev gr-osmosdr gr-iqbal gqrx-sdr && return 0
 			;;
 		"debian 7"|"debian 6")
 			echo "### No supported gnuradio package for this distribution ###"
