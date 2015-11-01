@@ -11,6 +11,7 @@
 # Everything is the responsibility of the user.
 #
 # Changelog:
+# 20151101: install also python-numpy due to ubuntu bug #1471351 --sq5bpf
 # 20151029: added support for Ubuntu 14 and Linux mint 17.2 --sq5bpf
 # 20150706: forbid running script as root --sq5bpf
 #
@@ -117,11 +118,11 @@ install_gnuradio() {
 		"ubuntu 14")
 			sudo add-apt-repository -y ppa:gqrx/releases && \
 				sudo apt-get update && \
-				sudo apt-get install -y gqrx gnuradio gr-osmosdr hackrf && \
+				sudo apt-get install -y gqrx gnuradio gr-osmosdr hackrf python-numpy && \
 				return 0
 			;;
 		"ubuntu 15") #not sure this will work, but i think ubuntu 15.x has modern gnuradio
-			sudo apt-get -y install gnuradio gnuradio-dev gr-osmosdr gr-iqbal gqrx-sdr && return 0
+			sudo apt-get -y install gnuradio gnuradio-dev gr-osmosdr gr-iqbal gqrx-sdr python-numpy && return 0
 			;;
 		*)
 			#unknown distro, not sure what to do here. maybe pretend everything is ok and install? :)
