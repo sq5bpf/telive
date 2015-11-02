@@ -161,14 +161,18 @@ install_codec () {
 }
 
 install_libosmocore () {
-	echo "INSTALLING libosmocore"
-	git clone https://github.com/sq5bpf/libosmocore-sq5bpf && \
-		cd libosmocore-sq5bpf &&  \
-		autoreconf -i && \
-		./configure && \
-		make && \
-		sudo make install && \
-		sudo ldconfig
+	if pkg-config --libs libosmocore >/dev/null 2>&1; then
+		echo "libosmocore is already installed"
+	else
+		echo "INSTALLING libosmocore"
+		git clone https://github.com/sq5bpf/libosmocore-sq5bpf && \
+			cd libosmocore-sq5bpf &&  \
+			autoreconf -i && \
+			./configure && \
+			make && \
+			sudo make install && \
+			sudo ldconfig
+	fi
 }
 
 install_osmo_tetra_sq5bpf() {
