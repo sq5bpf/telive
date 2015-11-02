@@ -83,7 +83,7 @@ install_gnuradio() {
 	GR_VERSION=`gnuradio-config-info -v 2>/dev/null|tr -d v`
 
 	case "$GR_VERSION" in
-		3.7.[5-9]*i|3.6.*)
+		3.7.[5-9]*|3.6.*)
 			echo "Found supported gnuradio $GR_VERSION"
 			return 0
 			;;
