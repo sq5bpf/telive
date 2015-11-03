@@ -206,6 +206,7 @@ echo "Please make sure that you have full internet access"
 do_distro_specific_stuff || exit 1
 update_packages || exit 1 
 install_gnuradio || exit 1
+sudo service udev restart #rtl-sdr stuff installs new udev rules, so restart just in case
 install_packages || exit 1
 
 ( install_codec ) || exit 1
