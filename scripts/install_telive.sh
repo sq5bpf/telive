@@ -11,6 +11,7 @@
 # Everything is the responsibility of the user.
 #
 # Changelog:
+# 20151105: unload dvb-t modules just in case --sq5bpf
 # 20151101: install also python-numpy due to ubuntu bug #1471351 --sq5bpf
 # 20151029: added support for Ubuntu 14 and Linux mint 17.2 --sq5bpf
 # 20150706: forbid running script as root --sq5bpf
@@ -206,7 +207,17 @@ echo "Please make sure that you have full internet access"
 do_distro_specific_stuff || exit 1
 update_packages || exit 1 
 install_gnuradio || exit 1
-sudo service udev restart #rtl-sdr stuff installs new udev rules, so restart just in case
+
+#rtl-sdr stuff installs new udev rules, so restart just in case
+sudo service udev restart
+
+#unload these modules just in case, installing librtlsdr blacklists them 
+#anyway, but they may be loaded now, and this might confuse the user
+for i in dvb_usb_rtl28xxu e4000 rtl2832
+do
+	sudo rmmod $i >/dev/null 2>&1
+done
+
 install_packages || exit 1
 
 ( install_codec ) || exit 1
