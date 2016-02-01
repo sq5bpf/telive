@@ -163,7 +163,7 @@ struct freqinfo *frequencies=NULL;
 int curplayingidx=0;
 time_t curplayingtime=0;
 int curplayingticks=0; 
-FILE *playingfp;
+FILE *playingfp=NULL;
 int mutessi=0;
 int alldump=0;
 int ps_record=0;
@@ -541,7 +541,14 @@ int matchssi(int ssi)
 	if (!ssi) return(0);
 	sprintf(ssistr,"%i",ssi);
 	if (strlen(ssi_filter)==0) return(1); 
+
+#ifdef FNM_EXTMATCH
 	r=fnmatch((char *)&ssi_filter,(char *)&ssistr,FNM_EXTMATCH);
+#else
+	/* FNM_EXTMATCH is a GNU libc extension, not present in other libcs, like the MacOS X one */
+#warning -----------    Extended match patterns for fnmatch are not supported by your libc. You will have to live with that.    ------------
+	r=fnmatch((char *)&ssi_filter,(char *)&ssistr,0); 
+#endif
 	return(!r);
 }
 
@@ -839,16 +846,25 @@ void refresh_scr()
 	wrefresh(msgwin);
 }
 
+/* reopen a pipe to tplay */
+void do_popen() {
+	if (playingfp) pclose(playingfp);
+	playingfp=popen("tplay >/dev/null 2>&1","w");
+	if (!playingfp) {
+		wprintw(statuswin,"PLAYBACK PROBLEM!! (fix tplay)\n");
+		playingfp=NULL;
+		curplayingidx=0;
+	}
+}
+
+
 void tickf ()
 {
 	time_t t=time(0);
 	if (curplayingidx) {
 		/* crude hack to hack around buffering, i know this should be done better */
-		if (curplayingticks==2) {
-			if (playingfp) fclose(playingfp);
-			playingfp=popen("tplay >/dev/null 2>&1","w");
+		if (curplayingticks==2) do_popen();
 
-		}
 		curplayingticks++;
 	}
 
@@ -1332,8 +1348,6 @@ int main(void)
 	if ((s=socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP))==-1)
 		diep("socket");
 
-	playingfp=popen("tplay >/dev/null 2>&1","w");
-
 	get_cfgenv(); 
 	if (getenv("TETRA_PORT"))
 	{
@@ -1352,6 +1366,8 @@ int main(void)
 
 	initcur();
 	updopis();
+	do_popen();
+
 	ref=0;
 
 	if (getenv("TETRA_KEYS")) {
