@@ -1,10 +1,10 @@
-/* telive v1.5 - tetra live monitor
+/* telive v1.6 - tetra live monitor
  * (c) 2014-2016 Jacek Lipkowski <sq5bpf@lipkowski.org>
  * Licensed under GPLv3, please read the file LICENSE, which accompanies 
  * the telive program sources 
  *
  * Changelog:
- * current - add a star to the status line to show if there is network coverage --sq5bpf
+ * v1.6 - various fixes, add a star to the status line to show if there is network coverage, show afc info --sq5bpf
  * v1.5 - added 'z' key to clear learned info, added play lock file --sq5bpf
  * v1.4 - added frequency window --sq5bpf
  * v1.3 - add frequency info --sq5bpf
@@ -45,7 +45,7 @@
 
 #include "telive.h"
 
-#define TELIVE_VERSION "1.5"
+#define TELIVE_VERSION "1.6"
 
 #define BUFLEN 8192
 #define PORT 7379
@@ -56,6 +56,7 @@ int ssi_timeout=60; /* after how long we forget SSIs */
 int idx_timeout=8; /* after how long we disable the active flag */
 int curplaying_timeout=5; /* after how long we stop playing the current usage identifier */
 int freq_timeout=600; /* how long we remember frequency info */
+int receiver_timeout=60; /* how long we remember receiver info */
 
 
 char *outdir;
@@ -157,6 +158,19 @@ struct locations {
 
 };
 
+/* reeciver info */
+struct receiver {
+	unsigned int rxid;
+	int afc;
+	uint32_t freq;
+	time_t lastseen;
+	void *next;
+	void *prev;
+};
+
+
+
+struct receiver *receivers=NULL;
 struct opisy *opisssi;
 struct locations *kml_locations=NULL;
 struct freqinfo *frequencies=NULL;
@@ -586,6 +600,76 @@ void releaselock() {
 	flock(lockfd,LOCK_UN);
 }
 
+/* receiver table functions */
+void update_receivers(int rx,int afc,uint32_t freq)
+{
+	struct receiver *ptr=receivers;
+	struct receiver *prevptr;
+
+	/* do we know this rx? */
+	while(ptr)
+	{
+		if (ptr->rxid==rx) break;
+		prevptr=ptr;
+		ptr=ptr->next;
+	}
+	/* nope, new one */
+	if (!ptr) {
+		ptr=calloc(1,sizeof(struct receiver));
+		if (!receivers) {
+
+			receivers=ptr;
+		} else {
+			prevptr->next=ptr;
+			ptr->prev=prevptr;
+		}
+		ptr->rxid=rx;
+	}
+	ptr->afc=afc;
+	if (freq)	ptr->freq=freq;
+	ptr->lastseen=time(0);
+}
+
+/* time out old receivers */
+void timeout_receivers() {
+	struct receiver *ptr=receivers;
+	struct receiver *prevptr,*nextptr;
+	if (!ptr) return;
+
+	time_t timenow=time(0);
+
+	while(ptr) {
+		if ((timenow-ptr->lastseen)>receiver_timeout) 
+		{
+			prevptr=ptr->prev;
+			nextptr=ptr->next;
+			free(ptr);
+			if (prevptr) {
+				prevptr->next=nextptr;
+				if (nextptr) nextptr->prev=prevptr;
+			} else {
+				receivers=nextptr;
+				if (nextptr) nextptr->prev=NULL;
+			}
+		}
+		ptr=ptr->next;
+	}
+}
+
+/* clear all known receivers */
+void clear_all_receivers() {
+	struct receiver *ptr=receivers;
+	struct receiver *ptr2;
+
+	while(ptr) {
+		ptr2=ptr;
+		ptr=ptr->next;
+		free(ptr2);
+
+	}
+}
+
+
 /* frequency table functions */
 #define REASON_NETINFO 1<<0
 #define REASON_FREQINFO 1<<1
@@ -678,8 +762,9 @@ void display_freq() {
 	char tmpstr2[64];
 	char tmpstr[256];
 	struct freqinfo *ptr=frequencies;
+	struct receiver *rptr=receivers;
 	wclear(freqwin);
-	wprintw(freqwin,"***  Known frequencies:  ***\n");
+	wprintw(freqwin,"\n***  Known frequencies:  ***\n");
 	while(ptr) {
 		tmpstr[0]=0;
 		if (ptr->dl_freq) {
@@ -730,12 +815,34 @@ void display_freq() {
 		ptr=ptr->next;
 	}
 
+	wprintw(freqwin,"\n\n***    Receiver info:    ***\n\n");
+	wprintw(freqwin,"RX:\tAFC:\t\t\t\tFREQUENCY\n");
+
+	while(rptr) {
+
+		char buf[24]="[..........:..........]";
+		int i;
+		i=(11+rptr->afc/10);
+		if (i<2) { buf[2]='<'; } 
+		else  if (i>21) { buf[21]='>'; } else { buf[i]='|';  }
+
+		sprintf(tmpstr,"%i\t%+3.3i %s",rptr->rxid,rptr->afc,buf);
+		if (rptr->freq) {
+			sprintf(tmpstr2,"%3.4fMHz",rptr->freq/1000000.0);
+			strcat(tmpstr,tmpstr2);
+		} 
+		wprintw(freqwin,"%s\n",tmpstr);
+		rptr=rptr->next;
+	}
+
+
 	wattron(freqwin,A_BOLD);
 	wmove(freqwin,1,170);
 	wprintw(freqwin,"reasons: N:D-NWRK-BROADCAST");
 	wmove(freqwin,2,170);
 	wprintw(freqwin,"S:SYSINFO A:ChanAlloc");
 	wattroff(freqwin,A_BOLD);
+
 	ref=1;
 	freq_changed=0;
 }
@@ -870,16 +977,21 @@ void tickf ()
 	}
 
 	if ((t-last_1s_event)>0) {
+		/* this gets executed every second */
 		clear_freqtable();
 		timeout_ssis(t);
 		timeout_idx(t);
 		last_1s_event=t;
+		if (displayedwin==freqwin) display_freq();
 	}
 	if ((t-last_10s_event)>9) {
-		if ((freq_changed)&&(displayedwin==freqwin)) display_freq();
+		/* this gets executed every 10 seconds */
+		timeout_receivers();
+		//if ((freq_changed)&&(displayedwin==freqwin)) display_freq();
 		last_10s_event=t;
 	}
 	if ((t-last_1min_event)>59) {
+		/* this gets executed every minute */
 		ref=1;
 		last_1min_event=t;
 	}
@@ -997,6 +1109,7 @@ void keyf(unsigned char r)
 			break;
 		case 'z':
 			clear_all_freqtable();
+			clear_all_receivers();
 			clear_locations();
 			if (displayedwin==freqwin) display_freq();
 			wprintw(statuswin,"cleared frequency and location info\n");
@@ -1081,6 +1194,12 @@ int parsestat(char *c)
 			last_burst=10;
 		}
 		/* never log bursts */
+		return(0);
+	}
+
+	if (cmpfunc(func,"AFCVAL")) {
+		update_receivers(rxid,getptrint(c,"AFC:",10),0);
+		/* never log afc values */
 		return(0);
 	}
 
