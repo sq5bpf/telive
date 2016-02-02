@@ -667,6 +667,7 @@ void clear_all_receivers() {
 		free(ptr2);
 
 	}
+	receivers=0;
 }
 
 
