@@ -1,7 +1,9 @@
 #!/bin/bash
-# install_telive.sh (c) 2015 Jacek Lipkowski <sq5bpf@lipkowski.org>
+# install_telive.sh (c) 2015-2016 Jacek Lipkowski <sq5bpf@lipkowski.org>
 #
 # simple script to install telive under Debian 8, Ubuntu 14 (and maybe 15), Linux mint 17.2
+# WARNING: it doesn't work with mint 17.3
+#
 # this is a quick hack, with bad error checking etc.
 # some day i will make a proper install script, but for now this will have to do
 #
@@ -11,6 +13,7 @@
 # Everything is the responsibility of the user.
 #
 # Changelog:
+# 20160203: add an icon for 203x60 xterm on the desktop --sq5bpf
 # 20151105: unload dvb-t modules just in case --sq5bpf
 # 20151101: install also python-numpy due to ubuntu bug #1471351 --sq5bpf
 # 20151029: added support for Ubuntu 14 and Linux mint 17.2 --sq5bpf
@@ -19,7 +22,7 @@
 
 
 
-TETRADIR=~/tetra #you can change this directory if you want
+TETRADIR=${HOME}/tetra #you can change this directory if you want
 
 get_osr() {
 	( . /etc/os-release ; eval "echo \$$1" )
@@ -192,6 +195,25 @@ install_telive() {
 		./install.sh
 }
 
+make_desktop_icons() {
+cat > ~/Desktop/xterm_telive.desktop <<EOF2
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=xterm 203x60
+Comment=xterm 203x60 for telive
+Exec=xterm -g 203x60
+Icon=/usr/share/pixmaps/xterm-color_48x48.xpm
+Path=${TETRADIR}/telive
+Terminal=false
+StartupNotify=false
+GenericName=xterm 203x60 for telive
+Name[en_US.utf8]=telive xterm
+EOF2
+
+
+}
+
 ######## MAIN
 echo "Telive simple installer"
 
@@ -243,6 +265,7 @@ echo "PLEASE, before proceeding read the manual in `pwd`/telive/telive_doc.pdf"
 if [ -d ~/Desktop ]; then
 	cp "`pwd`/telive/telive_doc.pdf" ~/Desktop
 	echo "or the telive_doc.pdf file on the desktop"
+	make_desktop_icons
 fi
 
 echo 
