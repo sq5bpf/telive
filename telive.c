@@ -890,7 +890,7 @@ void tickf ()
 	if (last_burst) { 
 		if (last_burst==1) {
 			last_burst--; 
-			wprintw(statuswin,"Network lost\n");
+			wprintw(statuswin,"Signal lost\n");
 			updopis(); 
 		} else {
 			last_burst--; 
@@ -1076,7 +1076,7 @@ int parsestat(char *c)
 		if (!last_burst) {
 			last_burst=10;
 			updopis(); 
-			wprintw(statuswin,"Network found\n");
+			wprintw(statuswin,"Signal found\n");
 		} else {
 			last_burst=10;
 		}
