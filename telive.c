@@ -1,9 +1,10 @@
 /* telive v1.5 - tetra live monitor
- * (c) 2014-2015 Jacek Lipkowski <sq5bpf@lipkowski.org>
+ * (c) 2014-2016 Jacek Lipkowski <sq5bpf@lipkowski.org>
  * Licensed under GPLv3, please read the file LICENSE, which accompanies 
  * the telive program sources 
  *
  * Changelog:
+ * current - add a star to the status line to show if there is network coverage --sq5bpf
  * v1.5 - added 'z' key to clear learned info, added play lock file --sq5bpf
  * v1.4 - added frequency window --sq5bpf
  * v1.3 - add frequency info --sq5bpf
@@ -462,7 +463,7 @@ void updopis()
 {
 	wmove(titlewin,0,32);
 	wattron(titlewin,COLOR_PAIR(4)|A_BOLD);
-	wprintw(titlewin,"MCC:%5i MNC:%5i ColourCode:%3i Down:%3.4fMHz Up:%3.4fMHz LA:%5i",netinfo.mcc,netinfo.mnc,netinfo.colour_code,netinfo.dl_freq/1000000.0,netinfo.ul_freq/1000000.0,netinfo.la);
+	wprintw(titlewin,"MCC:%5i MNC:%5i ColourCode:%3i Down:%3.4fMHz Up:%3.4fMHz LA:%5i %c",netinfo.mcc,netinfo.mnc,netinfo.colour_code,netinfo.dl_freq/1000000.0,netinfo.ul_freq/1000000.0,netinfo.la,last_burst?'*':' ');
 	wattroff(titlewin,COLOR_PAIR(4)|A_BOLD);
 	wprintw(titlewin," mutessi:%i alldump:%i mute:%i record:%i log:%i verbose:%i lock:%i",mutessi,alldump,ps_mute,ps_record,do_log,verbose,locked);
 	switch(use_filter)
@@ -886,7 +887,15 @@ void tickf ()
 	timeout_curplaying(t);
 	timeout_rec(t);
 	if (ref) refresh_scr();
-	if (last_burst) last_burst--;
+	if (last_burst) { 
+		if (last_burst==1) {
+			last_burst--; 
+			wprintw(statuswin,"Network lost\n");
+			updopis(); 
+		} else {
+			last_burst--; 
+		}
+	}
 	if ((kml_changed)&&(kml_interval)&&((t-last_kml_save)>kml_interval)) dump_kml_file();
 
 
@@ -1064,7 +1073,13 @@ int parsestat(char *c)
 	rxid=getptrint(c,"RX:",10);
 
 	if (cmpfunc(func,"BURST")) {
-		last_burst=10;
+		if (!last_burst) {
+			last_burst=10;
+			updopis(); 
+			wprintw(statuswin,"Network found\n");
+		} else {
+			last_burst=10;
+		}
 		/* never log bursts */
 		return(0);
 	}
