@@ -1,9 +1,10 @@
-/* telive v1.6 - tetra live monitor
+/* telive v1.7 - tetra live monitor
  * (c) 2014-2016 Jacek Lipkowski <sq5bpf@lipkowski.org>
  * Licensed under GPLv3, please read the file LICENSE, which accompanies 
  * the telive program sources 
  *
  * Changelog:
+ * v1.7 - show country and network name --sq5bpf
  * v1.6 - various fixes, add a star to the status line to show if there is network coverage, show afc info --sq5bpf
  * v1.5 - added 'z' key to clear learned info, added play lock file --sq5bpf
  * v1.4 - added frequency window --sq5bpf
@@ -42,10 +43,12 @@
 #include <signal.h>
 #include <sys/file.h>
 #include <fcntl.h>
+#include <libxml/parser.h>
+#include <libxml/xpath.h>
 
 #include "telive.h"
 
-#define TELIVE_VERSION "1.6"
+#define TELIVE_VERSION "1.7"
 
 #define BUFLEN 8192
 #define PORT 7379
@@ -66,6 +69,8 @@ char def_logfile[BUFLEN]="telive.log";
 char *ssifile;
 char def_ssifile[BUFLEN]="ssi_descriptions";
 char ssi_filter[BUFLEN];
+char def_tetraxmlfile[BUFLEN]="tetra.xml";
+char *tetraxmlfile;
 int use_filter=0;
 
 char *kml_file=NULL;
@@ -78,6 +83,15 @@ int freq_changed=0;
 char *lock_file=NULL;
 int lockfd=0;
 int locked=0;
+
+
+/* stuff for handling the tetra networks list in xml */
+xmlDocPtr tetraxml_doc;
+char *tetraxml_country=NULL;
+char *tetraxml_network=NULL;
+uint16_t tetraxml_last_queried_country=0;
+uint16_t tetraxml_last_queried_network=0;
+
 
 /* various times for scheduling in tickf() */
 time_t last_1s_event=0;
@@ -198,6 +212,76 @@ void appendlog(char *msg) {
 	}
 }
 
+
+/* tetra.xml file handling */
+void tetraxml_read() {
+	tetraxml_doc=xmlParseFile(tetraxmlfile);
+	if (tetraxml_doc==NULL) {
+		wprintw(statuswin,"File %s was not read succesfully\n",tetraxmlfile);
+		return;
+	}
+
+
+}
+
+void tetraxml_query(uint16_t mcc, uint16_t mnc,xmlDocPtr xml_doc)
+{
+	char unn[]="Unknown network";
+	char unc[]="Unknown country";
+	xmlChar xpath[128];
+	xmlNodeSetPtr nodeset;
+	xmlChar *keyword;
+	xmlXPathContextPtr xml_context;
+	xmlXPathObjectPtr result;
+
+	if ((tetraxml_last_queried_country==mcc)&&(tetraxml_last_queried_network==mnc)) return;
+	if (tetraxml_country) free(tetraxml_country);
+	if (tetraxml_network) free(tetraxml_network);
+	tetraxml_last_queried_country=mcc;
+	tetraxml_last_queried_network=mnc;
+
+	xml_context = xmlXPathNewContext(tetraxml_doc);
+	if (xml_context==NULL) {
+		wprintw(statuswin,"Error in xmlXPathNewContext\n");
+		return;
+	}
+	if ((!xml_doc)||(!xml_context)) {
+		tetraxml_country=strdup((char *)&unc);
+		tetraxml_network=strdup((char *)&unn);
+		return;
+	}
+	sprintf((char *)&xpath,"//country[mcc='%i']/countryname",mcc);
+	result = xmlXPathEvalExpression((xmlChar *)&xpath, xml_context);
+	if(xmlXPathNodeSetIsEmpty(result->nodesetval)){
+		xmlXPathFreeContext(xml_context);
+		xmlXPathFreeObject(result);
+		tetraxml_country=strdup((char *)&unc);
+		tetraxml_network=strdup((char *)&unn);
+		return;
+	} else {
+		nodeset = result->nodesetval;
+		keyword=xmlNodeListGetString(tetraxml_doc, nodeset->nodeTab[0]->xmlChildrenNode, 1);
+		tetraxml_country= strdup(keyword);
+		xmlFree(keyword); //should be called for other nodeTab[xxx]
+
+	}
+
+	sprintf((char *)&xpath,"//country[mcc='%i']/network[mnc='%i']/name",mcc,mnc);
+	result = xmlXPathEvalExpression((xmlChar *)&xpath, xml_context);
+	if(xmlXPathNodeSetIsEmpty(result->nodesetval)){
+		xmlXPathFreeContext(xml_context);
+		xmlXPathFreeObject(result);
+		tetraxml_network=strdup((char *)&unn);
+		return;
+	} else {
+		nodeset = result->nodesetval;
+		keyword=xmlNodeListGetString(tetraxml_doc, nodeset->nodeTab[0]->xmlChildrenNode, 1);
+		tetraxml_network= strdup(keyword);
+		xmlFree(keyword); //should be called for other nodeTab[xxx]
+	}
+	xmlXPathFreeContext(xml_context);
+	xmlXPathFreeObject (result);
+}
 
 void clearopisy()
 {
@@ -765,6 +849,10 @@ void display_freq() {
 	struct freqinfo *ptr=frequencies;
 	struct receiver *rptr=receivers;
 	wclear(freqwin);
+
+	tetraxml_query(netinfo.mcc,netinfo.mnc,tetraxml_doc);
+	wprintw(freqwin,"\nCountry: %s [%i]\tNetwork: %s [%i]\n\n",tetraxml_country,netinfo.mcc,tetraxml_network,netinfo.mnc);
+
 	wprintw(freqwin,"\n***  Known frequencies:  ***\n");
 	while(ptr) {
 		tmpstr[0]=0;
@@ -1228,6 +1316,9 @@ int parsestat(char *c)
 			if (netinfo.changes>10) {
 				wprintw(statuswin,"Too much changes. Are you monitoring only one cell? (enable alldump to see)\n");
 				ref=1;
+			} else {
+				tetraxml_query(netinfo.mcc,netinfo.mnc,tetraxml_doc);
+				wprintw(statuswin,"Found Country: %s [%i]\tNetwork: %s [%i]\n",tetraxml_country,netinfo.mcc,tetraxml_network,netinfo.mnc);
 			}
 			netinfo.last_change=tmptime;
 		}
@@ -1455,6 +1546,13 @@ void get_cfgenv() {
 		kml_interval=0;
 	}
 
+	if (getenv("TETRA_XMLFILE"))
+	{
+		tetraxmlfile=getenv("TETRA_XMLFILE");
+	} else {
+		tetraxmlfile=def_tetraxmlfile;
+	}
+
 	if (getenv("TETRA_LOCK_FILE"))
 	{
 		lock_file=getenv("TETRA_LOCK_FILE");
@@ -1501,6 +1599,7 @@ int main(void)
 
 	initcur();
 	updopis();
+	tetraxml_read();
 	do_popen();
 
 	ref=0;

@@ -44,6 +44,10 @@ export TETRA_KML_INTERVAL=3
 # if unset then no file is used
 #export TETRA_SSI_DESCRIPTIONS=/tetra/ssi_descriptions
 
+# TETRA_XMLFILE - a file containing descriptions of MCC and MNC
+# if unset defaults to tetra.xml
+# export TETRA_XMLFILE=tetra.xml
+
 # internal tuning parameters, use at your own risk, the values shown are 
 # defaults (all values are in seconds). if in doubt, RTFS
 # if you don't know what you're doing, then don't touch these settings
