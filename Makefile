@@ -1,5 +1,8 @@
 default: telive
 
 telive: telive.c telive.h
-	gcc `xml2-config --cflags --libs` telive.c -o telive -lncurses -g
+	gcc telive.c -o telive -lncurses `xml2-config --cflags --libs` -g 
+
+clean:
+	rm telive
 
