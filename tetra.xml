@@ -6490,7 +6490,7 @@
 		</network>
 		<network>
 			<mnc>14</mnc>
-			<name>Billerud Skärblacka</name>
+			<name>Billerud Skarblacka</name>
 		</network>
 		<network>
 			<mnc>15</mnc>
@@ -6502,11 +6502,11 @@
 		</network>
 		<network>
 			<mnc>17</mnc>
-			<name>EON Värmekraft</name>
+			<name>EON Varmekraft</name>
 		</network>
 		<network>
 			<mnc>18</mnc>
-			<name>Väktarskolan Boden</name>
+			<name>Vaktarskolan Boden</name>
 		</network>
 		<network>
 			<mnc>19</mnc>
@@ -6570,7 +6570,7 @@
 		</network>
 		<network>
 			<mnc>1009</mnc>
-			<name>Boliden AB, Gällivare</name>
+			<name>Boliden AB, Gallivare</name>
 		</network>
 		<network>
 			<mnc>1015</mnc>
