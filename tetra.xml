@@ -2348,88 +2348,480 @@
 	</country>
 	<country>
 		<mcc>262</mcc>
-		<uri>http://www.mcc-mnc.com/</uri>
-		<description>Export from 20160205</description>
+		<uri>http://tetra.osmocom.org/trac/wiki/TETRA_in_Germany/</uri>
+		<description>List is from  2012</description>
 		<countryname>Germany</countryname>
 		<network>
-			<mnc>17</mnc>
-			<name>E-Plus </name>
-		</network>
-		<network>
 			<mnc>10</mnc>
-			<name>DB Netz AG </name>
-		</network>
-		<network>
-			<mnc>n/a</mnc>
-			<name>Debitel </name>
-		</network>
-		<network>
-			<mnc>77</mnc>
-			<name>E-Plus </name>
-		</network>
-		<network>
-			<mnc>03</mnc>
-			<name>E-Plus </name>
-		</network>
-		<network>
-			<mnc>05</mnc>
-			<name>E-Plus </name>
+			<name>RegioCall? Mobilfunk GmbH</name>
 		</network>
 		<network>
 			<mnc>12</mnc>
-			<name>E-Plus </name>
+			<name>Dolphin Telecom (Deutschland) GmbH</name>
 		</network>
 		<network>
-			<mnc>14</mnc>
-			<name>Group 3G UMTS </name>
+			<mnc>75</mnc>
+			<name>Dolphin Telecom (Deutschland) GmbH</name>
 		</network>
 		<network>
-			<mnc>43</mnc>
-			<name>Lycamobile </name>
+			<mnc>101</mnc>
+			<name>Kolner Verkehrs-Betriebe AG</name>
 		</network>
 		<network>
-			<mnc>13</mnc>
-			<name>Mobilcom </name>
+			<mnc>102</mnc>
+			<name>Berliner Verkehrsbetriebe</name>
 		</network>
 		<network>
-			<mnc>08</mnc>
-			<name>O2 </name>
+			<mnc>103</mnc>
+			<name>Stadtwerke Munster GmbH</name>
 		</network>
 		<network>
-			<mnc>11</mnc>
-			<name>O2 </name>
+			<mnc>104</mnc>
+			<name>Wurzburger Strssenbahn GmbH</name>
 		</network>
 		<network>
-			<mnc>07</mnc>
-			<name>O2 </name>
+			<mnc>105</mnc>
+			<name>European Central Bank</name>
 		</network>
 		<network>
-			<mnc>n/a</mnc>
-			<name>Talkline </name>
+			<mnc>106</mnc>
+			<name>AMV Funktechnik Handels GmbH</name>
 		</network>
 		<network>
-			<mnc>01</mnc>
-			<name>T-mobile/Telekom </name>
+			<mnc>107</mnc>
+			<name>BMW AG</name>
 		</network>
 		<network>
-			<mnc>06</mnc>
-			<name>T-mobile/Telekom </name>
+			<mnc>108</mnc>
+			<name>STEAG encotec GmbH</name>
 		</network>
 		<network>
-			<mnc>16</mnc>
-			<name>Telogic/ViStream </name>
+			<mnc>110</mnc>
+			<name>Bayerische Rieswasserversorgung</name>
 		</network>
 		<network>
-			<mnc>09</mnc>
-			<name>Vodafone D2 </name>
+			<mnc>111</mnc>
+			<name>CTO Intercal GmbH</name>
 		</network>
 		<network>
-			<mnc>04</mnc>
-			<name>Vodafone D2 </name>
+			<mnc>112</mnc>
+			<name>AirITSystems Hannover GmbH</name>
 		</network>
 		<network>
-			<mnc>02</mnc>
-			<name>Vodafone D2 </name>
+			<mnc>113</mnc>
+			<name>ATS Elektronic GmbH</name>
+		</network>
+		<network>
+			<mnc>114</mnc>
+			<name>RWE Power AG</name>
+		</network>
+		<network>
+			<mnc>115</mnc>
+			<name>T-Systems Business Services GmbH</name>
+		</network>
+		<network>
+			<mnc>116</mnc>
+			<name>Stadtwerke Hamm</name>
+		</network>
+		<network>
+			<mnc>117</mnc>
+			<name>Xella Trockenbau-Systeme GmbH</name>
+		</network>
+		<network>
+			<mnc>118</mnc>
+			<name>Stadtwerke Wolfenbuttel</name>
+		</network>
+		<network>
+			<mnc>119</mnc>
+			<name>Eurogate Technical Service GmbH</name>
+		</network>
+		<network>
+			<mnc>120</mnc>
+			<name>TETRA Hannover Gesellschaft fur Digitalfunk mbH</name>
+		</network>
+		<network>
+			<mnc>121</mnc>
+			<name>Vattenfall Europe Distribution Berlin GmbH</name>
+		</network>
+		<network>
+			<mnc>122</mnc>
+			<name>DFP TETRA Hamburg Gesellschaft fur Digitalfunk mbH</name>
+		</network>
+		<network>
+			<mnc>123</mnc>
+			<name>Borealis Polymere GmbH</name>
+		</network>
+		<network>
+			<mnc>124</mnc>
+			<name>Stadtwerke Munchen GmbH</name>
+		</network>
+		<network>
+			<mnc>125</mnc>
+			<name>DOW Deutschland Anlagengesellschaft mbH</name>
+		</network>
+		<network>
+			<mnc>126</mnc>
+			<name>Dortmunder Stadtwerke AG</name>
+		</network>
+		<network>
+			<mnc>127</mnc>
+			<name>Flughafen Munchen GmbH</name>
+		</network>
+		<network>
+			<mnc>128</mnc>
+			<name>Vattenfall Europe Mining AG</name>
+		</network>
+		<network>
+			<mnc>129</mnc>
+			<name>Boehringer Ingelheim Pharma</name>
+		</network>
+		<network>
+			<mnc>130</mnc>
+			<name>Boehringer Ingelheim Pharma</name>
+		</network>
+		<network>
+			<mnc>131</mnc>
+			<name>Uniklinikum Dusseldorf</name>
+		</network>
+		<network>
+			<mnc>132</mnc>
+			<name>Infracor GmbH</name>
+		</network>
+		<network>
+			<mnc>133</mnc>
+			<name>Volkswagen AG</name>
+		</network>
+		<network>
+			<mnc>134</mnc>
+			<name>First Solar Manufacturing GmbH</name>
+		</network>
+		<network>
+			<mnc>135</mnc>
+			<name>Flughafen Leipzig / Halle</name>
+		</network>
+		<network>
+			<mnc>136</mnc>
+			<name>TELCAT Kommunikationstechnik GmbH</name>
+		</network>
+		<network>
+			<mnc>137</mnc>
+			<name>Hansaport Hafenbetriebsgesellschaft mbH</name>
+		</network>
+		<network>
+			<mnc>138</mnc>
+			<name>Rhein-Neckar-Verkehr GmbH</name>
+		</network>
+		<network>
+			<mnc>139</mnc>
+			<name>Ineos Vinyls Deutschland GmbH</name>
+		</network>
+		<network>
+			<mnc>140</mnc>
+			<name>Stadtwerke Gaggenau</name>
+		</network>
+		<network>
+			<mnc>141</mnc>
+			<name>Wacker Chemie AG</name>
+		</network>
+		<network>
+			<mnc>142</mnc>
+			<name>OMV Deutschland GmbH</name>
+		</network>
+		<network>
+			<mnc>143</mnc>
+			<name>Volkswagen Aktiengesellschaft</name>
+		</network>
+		<network>
+			<mnc>144</mnc>
+			<name>Justizbehorde Strafvollzug Hamburg</name>
+		</network>
+		<network>
+			<mnc>145</mnc>
+			<name>Wuppermetall GmbH</name>
+		</network>
+		<network>
+			<mnc>146</mnc>
+			<name>EnBW Regional AG</name>
+		</network>
+		<network>
+			<mnc>147</mnc>
+			<name>S.O.B. Objektschutz GmbH</name>
+		</network>
+		<network>
+			<mnc>148</mnc>
+			<name>SITA Airport IT GmbH</name>
+		</network>
+		<network>
+			<mnc>149</mnc>
+			<name>Stadtwerke Dachau</name>
+		</network>
+		<network>
+			<mnc>150</mnc>
+			<name>Robert-Bosch GmbH</name>
+		</network>
+		<network>
+			<mnc>151</mnc>
+			<name>Bayer Schering Pharma AG</name>
+		</network>
+		<network>
+			<mnc>152</mnc>
+			<name>VSE NET GmbH</name>
+		</network>
+		<network>
+			<mnc>153</mnc>
+			<name>Stadtwerke Ettlingen</name>
+		</network>
+		<network>
+			<mnc>154</mnc>
+			<name>HHLA Container Terminal Burchardkai GmbH</name>
+		</network>
+		<network>
+			<mnc>155</mnc>
+			<name>Selectric Nachrichten-Systeme GmbH</name>
+		</network>
+		<network>
+			<mnc>156</mnc>
+			<name>RheinEnergie? AG</name>
+		</network>
+		<network>
+			<mnc>157</mnc>
+			<name>Volkswagen AG</name>
+		</network>
+		<network>
+			<mnc>158</mnc>
+			<name>Westpark Einkaufszentrum Verwaltungs GmbH</name>
+		</network>
+		<network>
+			<mnc>159</mnc>
+			<name>Stadtwerke Karlsruhe GmbH</name>
+		</network>
+		<network>
+			<mnc>160</mnc>
+			<name>ATP Automotive Testing Papenburg GmbH</name>
+		</network>
+		<network>
+			<mnc>161</mnc>
+			<name>Flughafen Stuttgart GmbH</name>
+		</network>
+		<network>
+			<mnc>162</mnc>
+			<name>WSW mobil GmbH</name>
+		</network>
+		<network>
+			<mnc>163</mnc>
+			<name>Fraport AG</name>
+		</network>
+		<network>
+			<mnc>164</mnc>
+			<name>PCK Raffinerie GmbH</name>
+		</network>
+		<network>
+			<mnc>165</mnc>
+			<name>Dr. Johannes Heidenrain GmbH</name>
+		</network>
+		<network>
+			<mnc>166</mnc>
+			<name>ProRegio? Bundelfunk GmbH &amp; Co.KG Sudwest</name>
+		</network>
+		<network>
+			<mnc>167</mnc>
+			<name>Stadtnetz Bamberg Ges fur Telekommunikation GmbH</name>
+		</network>
+		<network>
+			<mnc>168</mnc>
+			<name>EWR Netz GmbH</name>
+		</network>
+		<network>
+			<mnc>169</mnc>
+			<name>Kerntechnische Hilfsdienste GmbH</name>
+		</network>
+		<network>
+			<mnc>170</mnc>
+			<name>Hannover 96 Sales &amp; Service GmbH &amp; Co.KG</name>
+		</network>
+		<network>
+			<mnc>172</mnc>
+			<name>Volkswagen Sachsen GmbH</name>
+		</network>
+		<network>
+			<mnc>173</mnc>
+			<name>Siemens AG</name>
+		</network>
+		<network>
+			<mnc>174</mnc>
+			<name>VAG Verkehrs-Aktiengesellschaft</name>
+		</network>
+		<network>
+			<mnc>175</mnc>
+			<name>Dresdner Verkehrsbetriebe AG</name>
+		</network>
+		<network>
+			<mnc>176</mnc>
+			<name>Shell Deutschland Oil GmbH</name>
+		</network>
+		<network>
+			<mnc>177</mnc>
+			<name>Chemnitzer Verkehrs-Aktiengesellschaft</name>
+		</network>
+		<network>
+			<mnc>178</mnc>
+			<name>Autobahnamt Sachsen</name>
+		</network>
+		<network>
+			<mnc>179</mnc>
+			<name>MDCC Magdeburg-Coty-Com GmbH</name>
+		</network>
+		<network>
+			<mnc>180</mnc>
+			<name>Bau- und Liegenschaftsbetrieb NRW</name>
+		</network>
+		<network>
+			<mnc>181</mnc>
+			<name>Rutgers Germany GmbH</name>
+		</network>
+		<network>
+			<mnc>182</mnc>
+			<name>Staatsbibliothek zu Berlin</name>
+		</network>
+		<network>
+			<mnc>183</mnc>
+			<name>Justizvollzugsanstalt Bernau</name>
+		</network>
+		<network>
+			<mnc>184</mnc>
+			<name>Malottki GmbH</name>
+		</network>
+		<network>
+			<mnc>186</mnc>
+			<name>Siemens AG</name>
+		</network>
+		<network>
+			<mnc>188</mnc>
+			<name>Justizvollzugsanstalt Kiel</name>
+		</network>
+		<network>
+			<mnc>189</mnc>
+			<name>mobicom VERTRIEBS- UND SERVICE-GmbH</name>
+		</network>
+		<network>
+			<mnc>190</mnc>
+			<name>Flughafen Dresden GmbH</name>
+		</network>
+		<network>
+			<mnc>191</mnc>
+			<name>artec Funksysteme, Inh. M.Eberhardt e.K.</name>
+		</network>
+		<network>
+			<mnc>192</mnc>
+			<name>Autostadt GmbH</name>
+		</network>
+		<network>
+			<mnc>193</mnc>
+			<name>Justizvollzugsanstalt Straubing</name>
+		</network>
+		<network>
+			<mnc>194</mnc>
+			<name>Colonia Funknetz Betriebs GmbH</name>
+		</network>
+		<network>
+			<mnc>204</mnc>
+			<name>LUTRA Mittelbrandenburgische Hafengesellschaft GmbH</name>
+		</network>
+		<network>
+			<mnc>205</mnc>
+			<name>Friedrich-Loeffler-Institut</name>
+		</network>
+		<network>
+			<mnc>206</mnc>
+			<name>Gassco AS</name>
+		</network>
+		<network>
+			<mnc>207</mnc>
+			<name>LEW Lechwerke AG</name>
+		</network>
+		<network>
+			<mnc>208</mnc>
+			<name>Coppenrath &amp; Wiese GmbH</name>
+		</network>
+		<network>
+			<mnc>209</mnc>
+			<name>Justizvollzugsanstalt Memmingen</name>
+		</network>
+		<network>
+			<mnc>210</mnc>
+			<name>UPM GmbH</name>
+		</network>
+		<network>
+			<mnc>211</mnc>
+			<name>Stadtwerke Unna GmbH</name>
+		</network>
+		<network>
+			<mnc>212</mnc>
+			<name>Justizvollzugsanstalt Memmingen</name>
+		</network>
+		<network>
+			<mnc>213</mnc>
+			<name>Energiewerke Nord GmbH</name>
+		</network>
+		<network>
+			<mnc>700</mnc>
+			<name>DeTeWe? Funkwerk Kopenick GmbH</name>
+		</network>
+		<network>
+			<mnc>701</mnc>
+			<name>Schnoor Industrieelektronik GmbH &amp; Co. KG</name>
+		</network>
+		<network>
+			<mnc>702</mnc>
+			<name>ZOLLNER Signal GmbH</name>
+		</network>
+		<network>
+			<mnc>703</mnc>
+			<name>Funkwerk Security Communications GmbH</name>
+		</network>
+		<network>
+			<mnc>704</mnc>
+			<name>EWE TEL GmbH</name>
+		</network>
+		<network>
+			<mnc>705</mnc>
+			<name>PBIT GmbH</name>
+		</network>
+		<network>
+			<mnc>706</mnc>
+			<name>KTF Feuchter Kommunikationstechnik</name>
+		</network>
+		<network>
+			<mnc>1000</mnc>
+			<name>BDBOS</name>
+		</network>
+		<network>
+			<mnc>1001</mnc>
+			<name>BDBOS</name>
+		</network>
+		<network>
+			<mnc>1002</mnc>
+			<name>BDBOS</name>
+		</network>
+		<network>
+			<mnc>1003</mnc>
+			<name>Leitender Oberstaatsanwalt Koln</name>
+		</network>
+		<network>
+			<mnc>1090</mnc>
+			<name>Freie und Hansestadt Hamburg</name>
+		</network>
+		<network>
+			<mnc>1100</mnc>
+			<name>BDBOS</name>
+		</network>
+		<network>
+			<mnc>2000</mnc>
+			<name>Freistaat Thuringen, Landesamt fur Bau und Verkeh</name>
+		</network>
+		<network>
+			<mnc>2007</mnc>
+			<name>Riedel Communications GmbH &amp; Co.KG</name>
 		</network>
 	</country>
 	<country>
