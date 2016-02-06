@@ -6448,124 +6448,137 @@
 	</country>
 	<country>
 		<mcc>240</mcc>
-		<uri>http://www.mcc-mnc.com/</uri>
-		<description>Export from 20160205</description>
+		<uri>https://www.pts.se/upload/Ovrigt/Tele/Tekniska%20planer/Plan%20_T_MNC.pdf</uri>
+		<description></description>
 		<countryname>Sweden</countryname>
+
 		<network>
-			<mnc>35</mnc>
-			<name>42 Telecom AB </name>
+			<mnc>1</mnc>
+			<name>MSB Rakel</name>
 		</network>
 		<network>
-			<mnc>16</mnc>
-			<name>42 Telecom AB </name>
+			<mnc>2</mnc>
+			<name>MSB Rakel TEst</name>
 		</network>
 		<network>
-			<mnc>26</mnc>
-			<name>Beepsend </name>
+			<mnc>3</mnc>
+			<name>Swedavia</name>
 		</network>
 		<network>
-			<mnc>30</mnc>
-			<name>NextGen Mobile Ltd (CardBoardFish) </name>
+			<mnc>4</mnc>
+			<name>Regeringskansliet</name>
 		</network>
 		<network>
-			<mnc>28</mnc>
-			<name>CoolTEL Aps </name>
-		</network>
-		<network>
-			<mnc>25</mnc>
-			<name>Digitel Mobile Srl </name>
-		</network>
-		<network>
-			<mnc>22</mnc>
-			<name>Eu Tel AB </name>
-		</network>
-		<network>
-			<mnc>27</mnc>
-			<name>Fogg Mobile AB </name>
-		</network>
-		<network>
-			<mnc>18</mnc>
-			<name>Generic Mobile Systems Sweden AB </name>
-		</network>
-		<network>
-			<mnc>17</mnc>
-			<name>Gotalandsnatet AB </name>
-		</network>
-		<network>
-			<mnc>02</mnc>
-			<name>H3G Access AB </name>
-		</network>
-		<network>
-			<mnc>04</mnc>
-			<name>H3G Access AB </name>
-		</network>
-		<network>
-			<mnc>36</mnc>
-			<name>ID Mobile </name>
-		</network>
-		<network>
-			<mnc>23</mnc>
-			<name>Infobip Ltd. </name>
-		</network>
-		<network>
-			<mnc>11</mnc>
-			<name>Lindholmen Science Park AB </name>
-		</network>
-		<network>
-			<mnc>12</mnc>
-			<name>Lycamobile Ltd </name>
-		</network>
-		<network>
-			<mnc>29</mnc>
-			<name>Mercury International Carrier Services </name>
-		</network>
-		<network>
-			<mnc>19</mnc>
-			<name>Mundio Mobile (Sweden) Ltd </name>
+			<mnc>9</mnc>
+			<name>RPS Test</name>
 		</network>
 		<network>
 			<mnc>10</mnc>
-			<name>Spring Mobil AB </name>
+			<name>RPS Test</name>
 		</network>
 		<network>
-			<mnc>05</mnc>
-			<name>Svenska UMTS-N </name>
+			<mnc>11</mnc>
+			<name>Storstockholms Lokaltrafik</name>
 		</network>
 		<network>
-			<mnc>14</mnc>
-			<name>TDC Sverige AB </name>
-		</network>
-		<network>
-			<mnc>07</mnc>
-			<name>Tele2 Sverige AB </name>
-		</network>
-		<network>
-			<mnc>08</mnc>
-			<name>Telenor (Vodafone) </name>
-		</network>
-		<network>
-			<mnc>06</mnc>
-			<name>Telenor (Vodafone) </name>
-		</network>
-		<network>
-			<mnc>24</mnc>
-			<name>Telenor (Vodafone) </name>
-		</network>
-		<network>
-			<mnc>01</mnc>
-			<name>Telia Mobile </name>
+			<mnc>12</mnc>
+			<name>M-Real</name>
 		</network>
 		<network>
 			<mnc>13</mnc>
-			<name>Ventelo Sverige AB </name>
+			<name>SCA Graphic Sundsvall</name>
 		</network>
 		<network>
-			<mnc>20</mnc>
-			<name>Wireless Maingate AB </name>
+			<mnc>14</mnc>
+			<name>Billerud Skärblacka</name>
 		</network>
 		<network>
 			<mnc>15</mnc>
-			<name>Wireless Maingate Nordic AB </name>
+			<name>JMR Stockholm</name>
+		</network>
+		<network>
+			<mnc>16</mnc>
+			<name>Stora Enso Skoghall</name>
+		</network>
+		<network>
+			<mnc>17</mnc>
+			<name>EON Värmekraft</name>
+		</network>
+		<network>
+			<mnc>18</mnc>
+			<name>Väktarskolan Boden</name>
+		</network>
+		<network>
+			<mnc>19</mnc>
+			<name>APM Terminal</name>
+		</network>
+		<network>
+			<mnc>20</mnc>
+			<name>SCA Munksund</name>
+		</network>
+		<network>
+			<mnc>21</mnc>
+			<name>ABB Lyckeby</name>
+		</network>
+		<network>
+			<mnc>22</mnc>
+			<name>Ringhals</name>
+		</network>
+		<network>
+			<mnc>23</mnc>
+			<name>Skanska</name>
+		</network>
+		<network>
+			<mnc>24</mnc>
+			<name>LKAB</name>
+		</network>
+		<network>
+			<mnc>25</mnc>
+			<name>AstaZero</name>
+		</network>
+		<network>
+			<mnc>26</mnc>
+			<name>Smurfit Kappa</name>
+		</network>
+		<network>
+			<mnc>42</mnc>
+			<name>Miliatry</name>
+		</network>
+		<network>
+			<mnc>43</mnc>
+			<name>Military</name>
+		</network>
+		<network>
+			<mnc>44</mnc>
+			<name>Military</name>
+		</network>
+		<network>
+			<mnc>92</mnc>
+			<name>Preem</name>
+		</network>
+		<network>
+			<mnc>137</mnc>
+			<name>Forsmark</name>
+		</network>
+		<network>
+			<mnc>848</mnc>
+			<name>Oskarshamn</name>
+		</network>
+		<network>
+			<mnc>1006</mnc>
+			<name>Teleteknik</name>
+		</network>
+		<network>
+			<mnc>1009</mnc>
+			<name>Boliden AB, Gällivare</name>
+		</network>
+		<network>
+			<mnc>1015</mnc>
+			<name>Skavsta Flygplats</name>
+		</network>
+		<network>
+			<mnc>1017</mnc>
+			<name>Nobina Buss</name>
 		</network>
 	</country>
 	<country>
