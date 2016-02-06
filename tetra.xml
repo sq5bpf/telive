@@ -2054,60 +2054,60 @@
 	</country>
 	<country>
 		<mcc>244</mcc>
-		<uri>http://www.mcc-mnc.com/</uri>
-		<description>Export from 20160205</description>
+		<uri>https://www.viestintavirasto.fi/en/internettelephone/numberingoftelecommunicationsnetworks/othercodesfortelecommunicationsnetworks/tetramobilenetworkcodestmnc.html</uri>
+		<description></description>
 		<countryname>Finland</countryname>
 		<network>
-			<mnc>14</mnc>
-			<name>Alands </name>
-		</network>
-		<network>
-			<mnc>26</mnc>
-			<name>Compatel Ltd </name>
-		</network>
-		<network>
-			<mnc>04</mnc>
-			<name>DNA/Finnet </name>
-		</network>
-		<network>
-			<mnc>13</mnc>
-			<name>DNA/Finnet </name>
-		</network>
-		<network>
-			<mnc>12</mnc>
-			<name>DNA/Finnet </name>
-		</network>
-		<network>
-			<mnc>03</mnc>
-			<name>DNA/Finnet </name>
-		</network>
-		<network>
-			<mnc>21</mnc>
-			<name>Elisa/Saunalahti </name>
-		</network>
-		<network>
-			<mnc>05</mnc>
-			<name>Elisa/Saunalahti </name>
-		</network>
-		<network>
-			<mnc>82</mnc>
-			<name>ID-Mobile </name>
+			<mnc>1</mnc>
+			<name>Helen Oy</name>
 		</network>
 		<network>
 			<mnc>11</mnc>
-			<name>Mundio Mobile (Finland) Ltd </name>
+			<name>Suomen Virveverkko Oy</name>
 		</network>
 		<network>
-			<mnc>09</mnc>
-			<name>Nokia Oyj </name>
+			<mnc>20</mnc>
+			<name>Metsa Fibre Oy</name>
 		</network>
 		<network>
-			<mnc>10</mnc>
-			<name>TDC Oy Finland </name>
+			<mnc>1002</mnc>
+			<name>Oy Insalko Ab</name>
 		</network>
 		<network>
-			<mnc>91</mnc>
-			<name>TeliaSonera </name>
+			<mnc>1003</mnc>
+			<name>Suomen Virveverkko Oy</name>
+		</network>
+		<network>
+			<mnc>1004</mnc>
+			<name>Suomen Virveverkko Oy</name>
+		</network>
+		<network>
+			<mnc>1007</mnc>
+			<name>Finavia Oyj</name>
+		</network>
+		<network>
+			<mnc>1008</mnc>
+			<name>Tampere-talo Osakeyhtio</name>
+		</network>
+		<network>
+			<mnc>1009</mnc>
+			<name>Zenitel Finland Oy</name>
+		</network>
+		<network>
+			<mnc>1010</mnc>
+			<name>VR-Yhtyma Oy</name>
+		</network>
+		<network>
+			<mnc>1012</mnc>
+			<name>Lasten Paivan Saatio</name>
+		</network>
+		<network>
+			<mnc>1013</mnc>
+			<name>Helsingin kaupunki</name>
+		</network>
+		<network>
+			<mnc>1014</mnc>
+			<name>Kulttuuri- ja kongressikeskus Verkatehdas Oy</name>
 		</network>
 	</country>
 	<country>
@@ -6449,7 +6449,7 @@
 	<country>
 		<mcc>240</mcc>
 		<uri>https://www.pts.se/upload/Ovrigt/Tele/Tekniska%20planer/Plan%20_T_MNC.pdf</uri>
-		<description></description>
+		<description>PTS FTR</description>
 		<countryname>Sweden</countryname>
 
 		<network>
