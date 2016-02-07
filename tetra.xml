@@ -9,13 +9,17 @@ Dear users, please help me keep this list updated, send me:
 - a list of MNCs in a text file (whatever format). this can include things which are not on the official list (sometimes companies make up their own MNCs) . for now please don't use national characters, only ascii
 - additional information that might be useful for people if they want to update the list in the future
 - info if you want any credit for sending the list to me (some people want it, while others want to stay anonymous)
+- by submitting you agree to the terms of the license this material is on
 
 Submit via email to sq5bpf@lipkowski.org, via the http://radioreference.com site (PM or message in the tetra thread), or git pull request
 
+This work is licensed under the Creative Commons Attribution-ShareAlike 4.0 
+International License. To view a copy of this license, visit 
+http://creativecommons.org/licenses/by-sa/4.0/.
 -->
 
 	<infosource>
-		<description>List of MCC and MNC taken from various sites on the internet, unfortunately many of this is for GSM/UMTS and not TETRA</description>
+		<description>List of Tetra MCC and MNC compiled from various resources on the internet (unfortunately many of this is for GSM/UMTS and not TETRA), submitters and other anonymous sources</description>
 	</infosource>
 	<country>
 		<mcc>289</mcc>
