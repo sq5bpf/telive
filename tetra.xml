@@ -549,8 +549,13 @@ Submit via email to sq5bpf@lipkowski.org, via the http://radioreference.com site
 	<country>
 		<mcc>262</mcc>
 		<uri>http://tetra.osmocom.org/trac/wiki/TETRA_in_Germany/</uri>
-		<description>List is from  2012</description>
+		<description>Osmocom list is from  2012, updated with other sources</description>
 		<countryname>Germany</countryname>
+		<network>
+			<mnc>7</mnc>
+			<name>Riedel Communications GmbH (Formula 1)</name>
+			<description>http://www.riedel.net/en-us/rentalservices/riedelrentalsolutions/fullservicerental/motorsports.aspx</description>
+		</network>
 		<network>
 			<mnc>10</mnc>
 			<name>RegioCall? Mobilfunk GmbH</name>
@@ -2506,12 +2511,29 @@ Submit via email to sq5bpf@lipkowski.org, via the http://radioreference.com site
 			<mnc>78</mnc>
 			<name>Airwave UK (Public Safety Network)</name>
 		</network>
+		<network>
+			<mnc>1502</mnc>
+			<name>HM Prison Service (PMR-Products)</name>
+		</network>
+		<network>
+			<mnc>16002</mnc>
+			<name>Cabot Circus (PMR-Products)</name>
+		</network>
+		<network>
+			<mnc>16008</mnc>
+			<name>Cardiff RadioNet? (PMR-Products)</name>
+		</network>
 	</country>
 	<country>
 		<mcc>235</mcc>
 		<uri></uri>
 		<description></description>
 		<countryname>United Kingdom</countryname>
+		<network>
+			<mnc>7115</mnc>
+			<name>Cardiff Shopwatch</name>
+			<description>http://www.pmr-products.com/</description>
+		</network>
 	</country>
 	<country>
 		<mcc>310</mcc>
