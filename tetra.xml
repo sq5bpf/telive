@@ -360,6 +360,14 @@ Submit via email to sq5bpf@lipkowski.org, via the http://radioreference.com site
 			<mnc>753</mnc>
 			<name>Copenhagen Airport</name>
 		</network>
+		<network>
+			<mnc>5446</mnc>
+			<name>Metro in Copenhagen</name>
+		</network>
+		<network>
+			<mnc>4</mnc>
+			<name>Damm Cellular Systems A/S</name>
+		</network>
 	</country>
 	<country>
 		<mcc>638</mcc>
