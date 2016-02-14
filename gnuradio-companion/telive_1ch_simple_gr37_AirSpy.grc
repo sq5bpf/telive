@@ -2212,7 +2212,7 @@
     </param>
     <param>
       <key>affinity</key>
-      <value>0</value>
+      <value></value>
     </param>
     <param>
       <key>_enabled</key>
@@ -2315,7 +2315,7 @@
     </param>
     <param>
       <key>affinity</key>
-      <value>1</value>
+      <value></value>
     </param>
     <param>
       <key>_enabled</key>
