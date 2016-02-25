@@ -2212,6 +2212,15 @@ http://creativecommons.org/licenses/by-sa/4.0/.
 		<uri></uri>
 		<description></description>
 		<countryname>Spain</countryname>
+		<network>
+			<mnc>30</mnc>
+			<name>Emergency</name>
+		</network>
+
+		<network>
+			<mnc>999</mnc>
+			<name>City Police</name>
+		</network>
 	</country>
 	<country>
 		<mcc>413</mcc>
