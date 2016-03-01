@@ -372,6 +372,10 @@ http://creativecommons.org/licenses/by-sa/4.0/.
 			<mnc>4</mnc>
 			<name>Damm Cellular Systems A/S</name>
 		</network>
+		<network>
+			<mnc>1006</mnc>
+			<name>Copenhagen Malmo Port http://www.cmport.com</name>
+		</network>
 	</country>
 	<country>
 		<mcc>638</mcc>
