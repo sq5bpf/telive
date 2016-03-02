@@ -151,7 +151,7 @@ update_packages() {
 install_packages() {
 	echo "INSTALLING packages"
 
-	sudo apt-get -y install git make libtool libncurses5-dev build-essential autoconf automake vorbis-tools sox alsa-utils unzip xterm libxml2-dev
+	sudo apt-get -y install git make libtool libncurses5-dev build-essential autoconf automake vorbis-tools sox alsa-utils unzip xterm libxml2-dev socat
 
 
 }
