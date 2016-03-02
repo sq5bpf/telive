@@ -372,6 +372,10 @@ http://creativecommons.org/licenses/by-sa/4.0/.
 			<mnc>4</mnc>
 			<name>Damm Cellular Systems A/S</name>
 		</network>
+		<network>
+			<mnc>1006</mnc>
+			<name>Copenhagen Malmo Port http://www.cmport.com</name>
+		</network>
 	</country>
 	<country>
 		<mcc>638</mcc>
@@ -2052,6 +2056,10 @@ http://creativecommons.org/licenses/by-sa/4.0/.
 			<mnc>98</mnc>
 			<name>P4 Sp. z o.o.</name>
 		</network>
+		<network>
+			<mnc>16010</mnc>
+			<name>MPK Poznan</name>
+		</network>
 	</country>
 	<country>
 		<mcc>268</mcc>
@@ -2208,6 +2216,15 @@ http://creativecommons.org/licenses/by-sa/4.0/.
 		<uri></uri>
 		<description></description>
 		<countryname>Spain</countryname>
+		<network>
+			<mnc>30</mnc>
+			<name>Emergency</name>
+		</network>
+
+		<network>
+			<mnc>999</mnc>
+			<name>City Police</name>
+		</network>
 	</country>
 	<country>
 		<mcc>413</mcc>
