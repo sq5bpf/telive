@@ -120,10 +120,11 @@ install_gnuradio() {
 			;;
 
 		"ubuntu 14")
+                        sudo apt-get install -y software-properties-common && \
 			sudo add-apt-repository -y ppa:gqrx/releases && \
-				sudo apt-get update && \
-				sudo apt-get install -y gqrx gnuradio gr-osmosdr hackrf python-numpy && \
-				return 0
+			sudo apt-get update && \
+			sudo apt-get install -y gqrx gnuradio gr-osmosdr hackrf python-numpy && \
+			return 0
 			;;
 		"ubuntu 15") #not sure this will work, but i think ubuntu 15.x has modern gnuradio
 			sudo apt-get -y install gnuradio gnuradio-dev gr-osmosdr gr-iqbal gqrx-sdr python-numpy && return 0
