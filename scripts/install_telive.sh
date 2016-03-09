@@ -2,7 +2,7 @@
 # install_telive.sh (c) 2015-2016 Jacek Lipkowski <sq5bpf@lipkowski.org>
 #
 # simple script to install telive under Debian 8, Ubuntu 14 (and maybe 15), Linux mint 17.2
-# WARNING: it doesn't work with mint 17.3
+# 
 #
 # this is a quick hack, with bad error checking etc.
 # some day i will make a proper install script, but for now this will have to do
@@ -17,6 +17,7 @@
 # Everything is the responsibility of the user.
 #
 # Changelog:
+# 20160309: hopefully work around ubuntu 14/mint 17.3 errors --sq5bpf
 # 20160308: add env variables to skip codec install and set tetra dir --sq5bpf
 # 20160203: add an icon for 203x60 xterm on the desktop --sq5bpf
 # 20151105: unload dvb-t modules just in case --sq5bpf
@@ -126,13 +127,20 @@ install_gnuradio() {
 			;;
 
 		"ubuntu 14")
-			sudo add-apt-repository -y ppa:gqrx/releases && \
-				sudo apt-get update && \
-				sudo apt-get install -y gqrx gnuradio gr-osmosdr hackrf python-numpy && \
-				return 0
-			;;
-		"ubuntu 15") #not sure this will work, but i think ubuntu 15.x has modern gnuradio
-			sudo apt-get -y install gnuradio gnuradio-dev gr-osmosdr gr-iqbal gqrx-sdr python-numpy && return 0
+			for i in ppa:bladerf/bladerf \
+				ppa:ettusresearch/uhd \
+					ppa:myriadrf/drivers \
+					ppa:myriadrf/gnuradio \
+					ppa:gqrx/gqrx-sdr
+					do
+						sudo add-apt-repository -y $i || break
+							done && \
+							sudo apt-get update && \
+							sudo apt-get install -y gqrx-sdr gnuradio gr-osmosdr hackrf python-numpy && \
+							return 0
+							;;
+					"ubuntu 15") #not sure this will work, but i think ubuntu 15.x has modern gnuradio
+						sudo apt-get -y install gnuradio gnuradio-dev gr-osmosdr gr-iqbal gqrx-sdr python-numpy && return 0
 			;;
 		*)
 			#unknown distro, not sure what to do here. maybe pretend everything is ok and install? :)
@@ -169,17 +177,24 @@ install_packages() {
 install_codec () {
 	echo "INSTALLING codec"
 	git clone https://github.com/sq5bpf/install-tetra-codec && \
-		cd install-tetra-codec && \
-		chmod 755 install.sh  ; RET=$?
+	cd install-tetra-codec && \
+	chmod 755 install.sh  ; RET=$?
 	if [ "$RET" = 0 ]; then
 		if [ "$SKIP_CODEC_INSTALL" ]; then
 			echo "Skipping acelp codec install, please do this:"
-			echo "cd `pwd`"
-			echo "./install.sh"
+				echo "cd `pwd`"
+				echo "./install.sh"
+
+#if the codec is not installed then we need to make the /tetra dir ourselves
+				TBASEDIR=/tetra
+				MYUSER=`id -nu`
+				MYGROUP=`id -ng`
+				sudo mkdir -p "${TBASEDIR}/bin" && \
+				sudo chown -R ${MYUSER}.${MYGROUP} "$TBASEDIR"
 		else
 			./install.sh; RET=0
-		fi
-	fi
+				fi
+				fi
 	return $RET
 }
 
