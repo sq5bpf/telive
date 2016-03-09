@@ -7,12 +7,17 @@
 # this is a quick hack, with bad error checking etc.
 # some day i will make a proper install script, but for now this will have to do
 #
+# Environment variables to control this script:
+# set SKIP_CODEC_INSTALL if you don't want to run the acelp codec install script
+# set TETRADIR to some directory to be used instead of ${HOME}/tetra
+#
 # This script is licensed under GPL v2
 #
 # I disclaim any liability for things that this software does or doesn't do.
 # Everything is the responsibility of the user.
 #
 # Changelog:
+# 20160308: add env variables to skip codec install and set tetra dir --sq5bpf
 # 20160203: add an icon for 203x60 xterm on the desktop --sq5bpf
 # 20151105: unload dvb-t modules just in case --sq5bpf
 # 20151101: install also python-numpy due to ubuntu bug #1471351 --sq5bpf
@@ -21,8 +26,9 @@
 #
 
 
-
-TETRADIR=${HOME}/tetra #you can change this directory if you want
+if [ -z "$TETRADIR" ]; then
+	TETRADIR=${HOME}/tetra
+fi
 
 get_osr() {
 	( . /etc/os-release ; eval "echo \$$1" )
@@ -134,6 +140,10 @@ install_gnuradio() {
 			sudo apt-get -y install gnuradio gnuradio-dev gr-osmosdr gr-iqbal gqrx && return 0
 			;;
 	esac
+
+	echo "Unknown distro, please report it, and send the below information:"
+	cat /etc/os-release
+
 	return 1
 }
 
@@ -160,9 +170,19 @@ install_codec () {
 	echo "INSTALLING codec"
 	git clone https://github.com/sq5bpf/install-tetra-codec && \
 		cd install-tetra-codec && \
-		chmod 755 install.sh && \
-		./install.sh
+		chmod 755 install.sh  ; RET=$?
+	if [ "$RET" = 0 ]; then
+		if [ "$SKIP_CODEC_INSTALL" ]; then
+			echo "Skipping acelp codec install, please do this:"
+			echo "cd `pwd`"
+			echo "./install.sh"
+		else
+			./install.sh; RET=0
+		fi
+	fi
+	return $RET
 }
+
 
 install_libosmocore () {
 	if pkg-config --libs libosmocore >/dev/null 2>&1; then
