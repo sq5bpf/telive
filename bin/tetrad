@@ -31,7 +31,7 @@ rm "$TMPOUT" "$TMPF" "$PCMF" "$WAVF"
 echo 
 
 
-done < <( find $TDIR -type f -mmin +2 )
+done < <( find $TDIR/ -type f -mmin +2 )
 
 
 	sleep 60
