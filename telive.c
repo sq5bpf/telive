@@ -1,9 +1,10 @@
-/* telive v1.7 - tetra live monitor
+/* telive v1.8 - tetra live monitor
  * (c) 2014-2016 Jacek Lipkowski <sq5bpf@lipkowski.org>
  * Licensed under GPLv3, please read the file LICENSE, which accompanies 
  * the telive program sources 
  *
  * Changelog:
+ * v1.8 - handle osmo-tetra-sq5bpf protocol changes, use call identifiers for some stuff, various fixes --sq5bpf
  * v1.7 - show country and network name --sq5bpf
  * v1.6 - various fixes, add a star to the status line to show if there is network coverage, show afc info --sq5bpf
  * v1.5 - added 'z' key to clear learned info, added play lock file --sq5bpf
@@ -48,7 +49,7 @@
 
 #include "telive.h"
 
-#define TELIVE_VERSION "1.7"
+#define TELIVE_VERSION "1.8"
 
 #define BUFLEN 8192
 #define PORT 7379
@@ -152,6 +153,8 @@ struct usi {
 	int play;
 	char curfile[BUFLEN];
 	char curfiletime[32];
+	uint16_t cid;
+	int lastrx;
 };
 
 struct opisy {
@@ -180,6 +183,7 @@ struct receiver {
 	time_t lastseen;
 	void *next;
 	void *prev;
+	time_t lastburst;
 };
 
 
@@ -463,6 +467,7 @@ int getcl(int idx)
 /* update usage identifier display */
 void updidx(int idx) {
 	char opis[40];
+	char opis2[11];
 	int i;
 	int row=getr(idx);
 	int col=getcl(idx);
@@ -471,13 +476,15 @@ void updidx(int idx) {
 	if ((idx<0)||(idx>=MAXUS)) { wprintw(statuswin,"BUG! updidx(%i)\n",idx); wrefresh(statuswin); return; }
 
 	opis[0]=0;
+	opis2[0]=0;
 	wmove(mainwin,row,col+5);
 	if (ssis[idx].active) strcat(opis,"OK ");
 	//	if (ssis[idx].timeout) strcat(opis,"timeout ");
 	if (ssis[idx].encr) strcat(opis,"ENCR ");
-	if ((ssis[idx].play)&&(ssis[idx].active)) { bold=1; strcat(opis,"*PLAY*"); }
+	if ((ssis[idx].play)&&(ssis[idx].active)) { bold=1; strcat(opis,"*PLAY* "); }
+	if (ssis[idx].cid) { sprintf(opis2,"%i [%i]",ssis[idx].cid,ssis[idx].lastrx);  }
 	if (bold) wattron(mainwin,A_BOLD|COLOR_PAIR(1));
-	wprintw(mainwin,"%-30s",opis);
+	wprintw(mainwin,"%-20s %10s",opis,opis2);
 	if (bold) wattroff(mainwin,COLOR_PAIR(1));
 	for (i=0;i<3;i++) {
 		wmove(mainwin,row+i+1,col+5);
@@ -615,6 +622,31 @@ int addssi2(int idx,int ssi,int i)
 	return(0);
 }
 
+/* add an ssi to a call identified by a call identifier */
+int addcallssi(int cid,int ssi) {
+	int i;
+	if (!cid) return;
+	for (i=1;i<=MAXUS;i++) {
+		if (ssis[i].cid==cid) {
+			addssi(i,ssi);
+			return(i);;
+		}
+	}
+return(0);
+}
+
+int addcallident(int idx,uint16_t cid,int rxid)
+{
+	if (!idx) return(0);
+	if (!cid) return(0);
+	if ((verbose)&&(ssis[idx].cid)&&(ssis[idx].cid!=cid)) {
+		wprintw(statuswin,"Overlapping CIDs for IDX:%i. Previous: %i (RX:%i)  Current: %i (RX:%i)\n",idx,ssis[idx].cid,ssis[idx].lastrx,cid,rxid);
+		ref=1;
+	}
+	ssis[idx].cid=cid;
+	ssis[idx].lastrx=rxid;
+
+}
 
 int releasessi(int ssi)
 {
@@ -685,7 +717,8 @@ void releaselock() {
 }
 
 /* receiver table functions */
-void update_receivers(int rx,int afc,uint32_t freq)
+//void update_receivers(int rx,int afc,uint32_t freq)
+void update_receivers(int rx)
 {
 	struct receiver *ptr=receivers;
 	struct receiver *prevptr;
@@ -709,8 +742,9 @@ void update_receivers(int rx,int afc,uint32_t freq)
 		}
 		ptr->rxid=rx;
 	}
-	ptr->afc=afc;
-	if (freq)	ptr->freq=freq;
+	/*	ptr->afc=afc;
+		if (freq)	ptr->freq=freq;
+		*/
 	ptr->lastseen=time(0);
 }
 
@@ -753,6 +787,49 @@ void clear_all_receivers() {
 	}
 	receivers=0;
 }
+
+/* update receiver afc */
+void update_receiver_afc(int rx,int afc) {
+
+	struct receiver *ptr=receivers;
+
+	/* do we know this rx? */
+	while(ptr)
+	{
+		if (ptr->rxid==rx) break;
+		ptr=ptr->next;
+	}
+	if (ptr) ptr->afc=afc;
+}
+
+void update_receiver_freq(int rx,uint32_t freq) {
+
+	struct receiver *ptr=receivers;
+	if (!freq) return;
+	/* do we know this rx? */
+	while(ptr)
+	{
+		if (ptr->rxid==rx) break;
+		ptr=ptr->next;
+	}
+
+	if (ptr) ptr->freq=freq;
+}
+
+void update_receiver_lastburst(int rx) {
+
+	struct receiver *ptr=receivers;
+	/* do we know this rx? */
+	while(ptr)
+	{
+		if (ptr->rxid==rx) break;
+		ptr=ptr->next;
+	}
+
+	if (ptr) ptr->lastburst=ptr->lastseen; /* this should be ptr->lastburst=time(0); but update_receivers() was called a short time ago anyway, so we can save one time(0) syscall */
+	if (ptr) ptr->lastburst=time(0);
+}
+
 
 
 /* frequency table functions */
@@ -848,8 +925,9 @@ void display_freq() {
 	char tmpstr[256];
 	struct freqinfo *ptr=frequencies;
 	struct receiver *rptr=receivers;
-	wclear(freqwin);
+	time_t time_now=time(0);
 
+	wclear(freqwin);
 	tetraxml_query(netinfo.mcc,netinfo.mnc,tetraxml_doc);
 	wprintw(freqwin,"\nCountry: %s [%i]\tNetwork: %s [%i]\n\n",tetraxml_country,netinfo.mcc,tetraxml_network,netinfo.mnc);
 
@@ -911,11 +989,14 @@ void display_freq() {
 
 		char buf[24]="[..........:..........]";
 		int i;
+		int valid_rx;
 		i=(11+rptr->afc/10);
 		if (i<2) { buf[2]='<'; } 
 		else  if (i>21) { buf[21]='>'; } else { buf[i]='|';  }
 
-		sprintf(tmpstr,"%i\t%+3.3i %s",rptr->rxid,rptr->afc,buf);
+		if ((time_now-rptr->lastburst)<3) { valid_rx=1; } else { valid_rx=0; }
+
+		sprintf(tmpstr,"%i%c\t%+3.3i %s",rptr->rxid,valid_rx?'*':' ',rptr->afc,buf);
 		if (rptr->freq) {
 			sprintf(tmpstr2,"%3.4fMHz",rptr->freq/1000000.0);
 			strcat(tmpstr,tmpstr2);
@@ -967,14 +1048,16 @@ void timeout_ssis(time_t t)
 {
 	int i,j;
 	for (i=0;i<MAXUS;i++) {
-		for (j=0;j<3;j++) {
-			if ((ssis[i].ssi[j])&&(ssis[i].ssi_time[j]+ssi_timeout<t)) {
-				ssis[i].ssi[j]=0;
-				ssis[i].ssi_time[j]=0;
-				updidx(i);
-				ref=1;
-			}
 
+		if(!ssis[i].active) { /* don't timeout ssis in calls with the active flag */	
+			for (j=0;j<3;j++) {
+				if ((ssis[i].ssi[j])&&(ssis[i].ssi_time[j]+ssi_timeout<t)) {
+					ssis[i].ssi[j]=0;
+					ssis[i].ssi_time[j]=0;
+					updidx(i);
+					ref=1;
+				}
+			}
 		}
 		/* move the array elements so that the indexes start at 0 */
 		for (j=0;j<2;j++) {
@@ -995,6 +1078,8 @@ void timeout_idx(time_t t)
 		if ((ssis[i].active)&&(ssis[i].timeout+idx_timeout<t)) {
 			ssis[i].active=0;
 			ssis[i].play=0;
+			ssis[i].cid=0;
+			ssis[i].lastrx=0;
 			updidx(i);
 			ref=1;
 		}
@@ -1023,7 +1108,7 @@ void timeout_rec(time_t t)
 	int i;
 	for (i=0;i<MAXUS;i++) {
 		if ((strlen(ssis[i].curfile))&&(ssis[i].ssi_time_rec+rec_timeout<t)) {
-			snprintf(tmpfile,sizeof(tmpfile),"%s/traffic_%s_%i_%i_%i_%i.out",outdir,ssis[i].curfiletime,i,ssis[i].ssi[0],ssis[i].ssi[1],ssis[i].ssi[2]);
+			snprintf(tmpfile,sizeof(tmpfile),"%s/traffic_%s_idx%i_callid%i_%i_%i_%i.out",outdir,ssis[i].curfiletime,i,ssis[i].cid,ssis[i].ssi[0],ssis[i].ssi[1],ssis[i].ssi[2]);
 			rename(ssis[i].curfile,tmpfile);
 			ssis[i].curfile[0]=0;
 			ssis[i].active=0;
@@ -1249,6 +1334,7 @@ int parsestat(char *c)
 	char *t,*lonptr,*latptr;
 	int idtype=0;
 	int ssi=0;
+	int ssi2=0;
 	int usage=0;
 	int encr=0;
 	int writeflag=1;
@@ -1266,15 +1352,23 @@ int parsestat(char *c)
 	char *sdsbegin;
 	time_t tmptime;
 	float longtitude,lattitude;
+	uint16_t callidentifier;
+int i;
 
 	func=getptr(c,"FUNC:");
 	idtype=getptrint(c,"IDT:",10);
 	ssi=getptrint(c,"SSI:",10);
+	ssi2=getptrint(c,"SSI2:",10);
 	usage=getptrint(c,"IDX:",10);
 	encr=getptrint(c,"ENCR:",10);
 	rxid=getptrint(c,"RX:",10);
+	callidentifier=getptrint(c,"CID:",10);
+
 
 	if (cmpfunc(func,"BURST")) {
+		update_receivers(rxid);
+		update_receiver_lastburst(rxid);
+
 		if (!last_burst) {
 			last_burst=10;
 			updopis(); 
@@ -1282,12 +1376,14 @@ int parsestat(char *c)
 		} else {
 			last_burst=10;
 		}
+
 		/* never log bursts */
 		return(0);
 	}
 
 	if (cmpfunc(func,"AFCVAL")) {
-		update_receivers(rxid,getptrint(c,"AFC:",10),0);
+		update_receivers(rxid);
+		update_receiver_afc(rxid,getptrint(c,"AFC:",10));
 		/* never log afc values */
 		return(0);
 	}
@@ -1345,11 +1441,45 @@ int parsestat(char *c)
 	}
 	if (cmpfunc(func,"DSETUPDEC"))
 	{
-		//addssi2(usage,ssi,0);
+		if (usage) {
 		addssi(usage,ssi);
+		addssi(usage,ssi2);
+		updidx(usage);
+		} 
+		if (callidentifier) {
+			i=addcallssi(callidentifier,ssi);
+			if (i) updidx(i);
+			if (ssi2) {
+				i=addcallssi(callidentifier,ssi2);
+				if (i) updidx(i);
+			}
+
+		}
+
+	}
+	if (cmpfunc(func,"DCONNECTDEC"))
+	{
+		addssi(usage,ssi);
+		addssi(usage,ssi2);
+		addcallident(usage,callidentifier,rxid);
 		updidx(usage);
 
 	}
+
+	if (cmpfunc(func,"DTXGRANTDEC"))
+	{
+		i=getptrint(c,"TXGRANT:",10);
+		/*  0 - transmission granted, 3 - transmission granted to  another user (not sure if this should be included) */
+		if ((i==0)||(i==3)) { 
+			i=addcallssi(callidentifier,ssi);
+			if (i) updidx(i);
+			if (ssi2) { 
+				i=addcallssi(callidentifier,ssi2);
+				if (i) updidx(i);
+			}
+		}
+	}
+
 	if (cmpfunc(func,"SDSDEC")) {
 		callingssi=getptrint(c,"CallingSSI:",10);
 		calledssi=getptrint(c,"CalledSSI:",10);
@@ -1385,13 +1515,11 @@ int parsestat(char *c)
 	if (idtype==ADDR_TYPE_SSI_USAGE) {
 		if (cmpfunc(func,"D-SETUP"))
 		{
-			//addssi2(usage,ssi,0);
 			addssi(usage,ssi);
 			updidx(usage);
 		}
 		if (cmpfunc(func,"D-CONNECT"))
 		{
-			//addssi2(usage,ssi,1);
 			addssi(usage,ssi);
 			updidx(usage);
 		}
