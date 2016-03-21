@@ -626,10 +626,10 @@ int addssi2(int idx,int ssi,int i)
 int addcallssi(int cid,int ssi) {
 	int i;
 	if (!cid) return;
-	for (i=1;i<=MAXUS;i++) {
+	for (i=1;i<MAXUS;i++) {
 		if (ssis[i].cid==cid) {
 			addssi(i,ssi);
-			return(i);;
+			return(i);
 		}
 	}
 return(0);
