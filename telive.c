@@ -656,6 +656,8 @@ int releasessi(int ssi)
 			if ((ssis[i].active)&&(ssis[i].ssi[j]==ssi)) {
 				ssis[i].active=0;
 				ssis[i].play=0;
+				ssis[i].lastrx=0;
+				ssis[i].cid=0;
 				updidx(i);
 				ref=1;
 			}
@@ -1046,7 +1048,7 @@ int findtoplay(int first)
 
 void timeout_ssis(time_t t)
 {
-	int i,j;
+	int i,j,k;
 	for (i=0;i<MAXUS;i++) {
 
 		if(!ssis[i].active) { /* don't timeout ssis in calls with the active flag */	
@@ -1057,6 +1059,15 @@ void timeout_ssis(time_t t)
 					updidx(i);
 					ref=1;
 				}
+			}
+			k=1;
+			for (j=0;j<3;j++) if (ssis[i].ssi[j]) k=0;
+			if (k) {
+				/* no SSIs known and call is not active, so forget the callid and rx */
+				ssis[i].cid=0;
+				ssis[i].lastrx=0;
+				updidx(i);
+				ref=1;
 			}
 		}
 		/* move the array elements so that the indexes start at 0 */
@@ -1112,6 +1123,8 @@ void timeout_rec(time_t t)
 			rename(ssis[i].curfile,tmpfile);
 			ssis[i].curfile[0]=0;
 			ssis[i].active=0;
+			ssis[i].cid=0;
+			ssis[i].lastrx=0;
 			updidx(i);
 			if(verbose>1) wprintw(statuswin,"timeout rec %s\n",tmpfile);
 			ref=1;
@@ -1353,7 +1366,7 @@ int parsestat(char *c)
 	time_t tmptime;
 	float longtitude,lattitude;
 	uint16_t callidentifier;
-int i;
+	int i;
 
 	func=getptr(c,"FUNC:");
 	idtype=getptrint(c,"IDT:",10);
@@ -1442,9 +1455,9 @@ int i;
 	if (cmpfunc(func,"DSETUPDEC"))
 	{
 		if (usage) {
-		addssi(usage,ssi);
-		addssi(usage,ssi2);
-		updidx(usage);
+			addssi(usage,ssi);
+			addssi(usage,ssi2);
+			updidx(usage);
 		} 
 		if (callidentifier) {
 			i=addcallssi(callidentifier,ssi);
