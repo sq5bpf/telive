@@ -61,7 +61,7 @@ int idx_timeout=8; /* after how long we disable the active flag */
 int curplaying_timeout=5; /* after how long we stop playing the current usage identifier */
 int freq_timeout=600; /* how long we remember frequency info */
 int receiver_timeout=60; /* how long we remember receiver info */
-
+int vbuf=1;
 
 char *outdir;
 char def_outdir[BUFLEN]="/tetra/in";
@@ -1150,6 +1150,7 @@ void do_popen() {
 		playingfp=NULL;
 		curplayingidx=0;
 	}
+	if (vbuf) setvbuf(playingfp,NULL,_IONBF,1);
 }
 
 
@@ -1302,12 +1303,24 @@ void keyf(unsigned char r)
 			wprintw(statuswin,"cleared frequency and location info\n");
 			ref=1;
 			break;
+		case '!':
+			vbuf=!vbuf;
+			if (vbuf) {
+				wprintw(statuswin,"unbuffered audio\n");
+			} else {
+				wprintw(statuswin,"buffered audio\n");
+			}
+			ref=1;
+			break;
+
+
+
 		case '?':
 			wprintw(statuswin,"HELP: ");
 			wprintw(statuswin,"m-mutessi  M-mute   R-record   a-alldump  ");
 			wprintw(statuswin,"r-refresh  s-stop play  l-log v/V-less/more verbose\n");
 			wprintw(statuswin,"f-enable/disable/invert filter F-enter filter t-toggle windows\n");
-			wprintw(statuswin,"z-forget learned info\n");
+			wprintw(statuswin,"z-forget learned info !-toggle audio buffering\n");
 			ref=1;
 			break;
 		default: 
