@@ -1,0 +1,22 @@
+#!/bin/bash
+# run some program, and KILL it with deadly force upon ^C :) --sq5bpf
+# this is a hack to make 
+
+CPID=0
+intr() {
+	echo "killing $CPID"
+	kill -9 $CPID
+}
+
+trap intr 1
+trap intr 2
+trap intr 3
+trap intr 15
+
+$* &
+CPID=$!
+echo "child PID = $CPID"
+
+wait $CPID
+echo ending
+
