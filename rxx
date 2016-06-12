@@ -48,30 +48,92 @@ export TETRA_KML_INTERVAL=3
 # if unset defaults to tetra.xml
 # export TETRA_XMLFILE=tetra.xml
 
-# internal tuning parameters, use at your own risk, the values shown are 
-# defaults (all values are in seconds). if in doubt, RTFS
-# if you don't know what you're doing, then don't touch these settings
-
-# TETRA_REC_TIMEOUT - after how long we stop to record a usage identifier 
-#export TETRA_REC_TIMEOUT=30
-
-# TETRA_SSI_TIMEOUT - after how long we forget SSIs
-#export TETRA_SSI_TIMEOUT=60
-
-# TETRA_IDX_TIMEOUT -  after how long we disable the active flag
-#export TETRA_IDX_TIMEOUT=8
-
-# TETRA_CURPLAYING_TIMEOUT - after how long we stop playing the current 
-# usage identifier
-#export TETRA_CURPLAYING_TIMEOUT=5
-
-# TETRA_FREQ_TIMEOUT - after how long we forget frequency info
-# if unset, this will default to 600 seconds
-#export TETRA_FREQ_TIMEOUT=600
-
 # TETRA_LOCK_FILE - lock file to use between multiple instances 
 # of telive, so that they don't all play at the same time 
 #export TETRA_LOCK_FILE=/tetra/telive_lock
+
+#### optional receiver control via the gnuradio xmlrpc server ####
+
+# TETRA_GR_XMLRPC_URL - url for the xmlrpc interface of the gnuradio receiver
+# defaults to none (no receiver control)
+export TETRA_GR_XMLRPC_URL=http://127.0.0.1:42000/
+
+#### scanning stuff (you need to have the gnuradio xmlrpc receiver active) ####
+
+# TETRA_SCAN_LIST - a list of frequency ranges to scan in the form:
+# low frequency in MHz - high frequency in MHz / step in kHz, semicolon delimited, no spaces
+# example: "390.2-390.3/12.5;420-420.8/12.5;425-425.8/12.5"
+#export TETRA_SCAN_LIST="390-393/12.5;420-423/12.5;425-426.5/12.5" #local example
+export TETRA_SCAN_LIST="390-395/12.5;420-430/12.5;870-876/12.5;450-470/12.5;915-921/12.5" #complete list (warning: very slow)
+
+# TETRA_FREQLOGFILE - a file which will list every newly found frequency,
+# with timestamp (useful when  scanning), if unset defaults to 
+# telive_frequency.log
+# export TETRA_FREQLOGFILE=telive_frequency.log
+
+# TETRA_FREQUENCY_REPORT_FILE - a file where frequency info will be dumped
+# when the d key is pressed, is unset defaults to telive_frequency_report.txt
+# export TETRA_FREQUENCY_REPORT_FILE=telive_frequency_report.txt
+
+# TETRA_RX_GAIN - the receiver gain to set at startup
+# if unset, then the receiver gain is left as-is
+# export TETRA_RX_GAIN=30
+
+# TETRA_RX_PPM - the frequency correction coefficient in ppm
+#  if unset, then the receiver ppm is left as-is
+# export TETRA_RX_PPM=10
+
+# TETRA_RX_PPM_AUTOCORRECT - autocorrect the PPM  value from 
+# received AFC data. 1 enables, 0 disables. is unset then 1 is assumed
+# export TETRA_RX_PPM_AUTOCORRECT=1
+
+# TETRA_RX_BASEBAND_AUTOCORRECT - autocorrect the baseand frequency
+# to try to  cover all requested frequencies
+# 1 enables, 0 disables. is unset then 1 is assumed
+# export TETRA_RX_BASEBAND_AUTOCORRECT=1
+
+# TETRA_RX_BASEBAND - the baseand frequency in MHz
+# export TETRA_RX_BASEBAND=391.100
+
+# TETRA_RX_TUNE - semicolon delimited list of frequencies to tune the 
+# receivers to, terminated by ; (also at the end)
+# export TETRA_RX_TUNE="390.100;390,200;390,300;"
+
+# internal tuning parameters, use at your own risk, the values shown are 
+# defaults. if in doubt, RTFS
+# if you don't know what you're doing, then don't touch these settings
+
+# TETRA_REC_TIMEOUT - after how long we stop to record a usage identifier 
+# value in seconds
+#export TETRA_REC_TIMEOUT=30
+
+# TETRA_SSI_TIMEOUT - after how long we forget SSIs
+# value in seconds
+#export TETRA_SSI_TIMEOUT=60
+
+# TETRA_IDX_TIMEOUT -  after how long we disable the active flag
+# value in seconds
+#export TETRA_IDX_TIMEOUT=8
+
+# TETRA_CURPLAYING_TIMEOUT - after how long we stop playing the current 
+# usage identifier. value in seconds
+#export TETRA_CURPLAYING_TIMEOUT=5
+
+# TETRA_FREQ_TIMEOUT - after how long we forget frequency info
+# if unset, this will default to 600 seconds. value in seconds
+#export TETRA_FREQ_TIMEOUT=600
+
+# TETRA_SCAN_TIMEOUT_SIGNAL - when scanning, how much to wait after 
+# tuning in ms. defaults to 50
+# export TETRA_SCAN_TIMEOUT_SIGNAL=50 
+
+# TETRA_SCAN_TIMEOUT_BURST - when scanning, how much to wait for
+# a BURST message in ms.  defaults to 300
+# export TETRA_SCAN_TIMEOUT_BURST=300
+
+# TETRA_SCAN_TIMEOUT_SYSINFO - when scanning, how much to wait for
+# a SYSINFO message in ms.  defaults to 2000
+# export TETRA_SCAN_TIMEOUT_SYSINFO=2000
 
 ./telive
 
