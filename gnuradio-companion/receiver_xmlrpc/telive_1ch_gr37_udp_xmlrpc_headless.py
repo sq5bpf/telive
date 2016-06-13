@@ -3,7 +3,7 @@
 # Gnuradio Python Flow Graph
 # Title: SQ5BPF Tetra live receiver 1ch UDP HEADLESS
 # Author: Jacek Lipkowski SQ5BPF
-# Generated: Sat Jun 11 22:53:33 2016
+# Generated: Mon Jun 13 23:07:17 2016
 ##################################################
 
 from gnuradio import analog
@@ -32,10 +32,8 @@ class top_block(gr.top_block):
         self.xlate_offset1 = xlate_offset1 = 500e3
         self.udp_packet_size = udp_packet_size = 1472
         self.udp_dest_addr = udp_dest_addr = "127.0.0.1"
-        self.telive_receiver_name_0 = telive_receiver_name_0 = 'SQ5BPF 1-channel headless rx for telive'
-        self.telive_receiver_name = telive_receiver_name = 'SQ5BPF 6-channel rx for telive'
-        self.telive_receiver_channels_0 = telive_receiver_channels_0 = 1
-        self.telive_receiver_channels = telive_receiver_channels = 6
+        self.telive_receiver_name = telive_receiver_name = 'SQ5BPF 1-channel headless rx for telive'
+        self.telive_receiver_channels = telive_receiver_channels = 1
         self.sdr_ifgain = sdr_ifgain = 20
         self.sdr_gain = sdr_gain = 38
         self.ppm_corr = ppm_corr = 56
@@ -122,23 +120,11 @@ class top_block(gr.top_block):
     def set_udp_dest_addr(self, udp_dest_addr):
         self.udp_dest_addr = udp_dest_addr
 
-    def get_telive_receiver_name_0(self):
-        return self.telive_receiver_name_0
-
-    def set_telive_receiver_name_0(self, telive_receiver_name_0):
-        self.telive_receiver_name_0 = telive_receiver_name_0
-
     def get_telive_receiver_name(self):
         return self.telive_receiver_name
 
     def set_telive_receiver_name(self, telive_receiver_name):
         self.telive_receiver_name = telive_receiver_name
-
-    def get_telive_receiver_channels_0(self):
-        return self.telive_receiver_channels_0
-
-    def set_telive_receiver_channels_0(self, telive_receiver_channels_0):
-        self.telive_receiver_channels_0 = telive_receiver_channels_0
 
     def get_telive_receiver_channels(self):
         return self.telive_receiver_channels
