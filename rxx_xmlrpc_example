@@ -1,5 +1,8 @@
 #!/bin/sh
 
+# this is an example used in the documentation in the 6 channel 
+# xmlrpc receiver  example
+
 # there brief explanations what each environemt variable does here, but
 # please consult the telive manual: telive_doc.pdf
 # sq5bpf
@@ -81,23 +84,23 @@ export TETRA_SCAN_LIST="390-395/12.5;420-430/12.5;870-876/12.5;450-470/12.5;915-
 
 # TETRA_RX_PPM - the frequency correction coefficient in ppm
 #  if unset, then the receiver ppm is left as-is
-# export TETRA_RX_PPM=10
+export TETRA_RX_PPM=10
+
+# TETRA_AUTO_TUNE - tune unused channels from the info received from
+# the network. 1 enables, 0 disables. is unset then 0 is assumed
+export TETRA_AUTO_TUNE=1
 
 # TETRA_RX_PPM_AUTOCORRECT - autocorrect the PPM  value from 
 # received AFC data. 1 enables, 0 disables. is unset then 1 is assumed
-# export TETRA_RX_PPM_AUTOCORRECT=1
+export TETRA_RX_PPM_AUTOCORRECT=1
 
 # TETRA_RX_BASEBAND_AUTOCORRECT - autocorrect the baseand frequency
 # to try to  cover all requested frequencies
 # 1 enables, 0 disables. is unset then 1 is assumed
-# export TETRA_RX_BASEBAND_AUTOCORRECT=1
+export TETRA_RX_BASEBAND_AUTOCORRECT=1
 
 # TETRA_RX_BASEBAND - the baseand frequency in MHz
-# export TETRA_RX_BASEBAND=391.100
-
-# TETRA_AUTO_TUNE - automatically tune unused channels from tetra
-# signalling information.  1 enables, 0 disables. is unset then 0 is assumed
-# export TETRA_AUTO_TUNE=1
+export TETRA_RX_BASEBAND=391.100
 
 # TETRA_RX_TUNE - semicolon delimited list of frequencies to tune the 
 # receivers to, terminated by ; (also at the end)

@@ -2756,6 +2756,9 @@ void get_cfgenv() {
 			receiver_gain=atoi(getenv("TETRA_RX_GAIN"));
 			set_grxml_gain(grxml_url,receiver_gain);
 		}
+		if (getenv("TETRA_AUTO_TUNE")) {
+			telive_auto_tune=atoi(getenv("TETRA_AUTO_TUNE"));
+		}
 
 		if (getenv("TETRA_RX_PPM")) {
 			receiver_ppm=atof(getenv("TETRA_RX_PPM"));
