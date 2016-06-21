@@ -17,6 +17,7 @@
 # Everything is the responsibility of the user.
 #
 # Changelog:
+# 20160621: support raspbian 8 and ubuntu 16 --sq5bpf
 # 20160309: hopefully work around ubuntu 14/mint 17.3 errors --sq5bpf
 # 20160308: add env variables to skip codec install and set tetra dir --sq5bpf
 # 20160203: add an icon for 203x60 xterm on the desktop --sq5bpf
@@ -146,7 +147,7 @@ install_gnuradio() {
 							sudo apt-get install -y gqrx-sdr gnuradio gr-osmosdr hackrf python-numpy && \
 							return 0
 							;;
-					"ubuntu 15") #not sure this will work, but i think ubuntu 15.x has modern gnuradio
+					"ubuntu 15"|"ubuntu 16") 
 						sudo apt-get -y install gnuradio gnuradio-dev gr-osmosdr gr-iqbal gqrx-sdr python-numpy && return 0
 			;;
 		*)
