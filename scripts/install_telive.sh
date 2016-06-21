@@ -42,6 +42,10 @@ do_distro_specific_stuff() {
 	fi
 	case `get_osr ID` in
 
+		"raspbian")
+			DISTRO_NAME="raspbian"
+			DISTRO_VERSION=`get_osr VERSION_ID`
+			;; 
 		"debian")
 			DISTRO_NAME="debian"
 			DISTRO_VERSION=`get_osr VERSION_ID`
@@ -116,6 +120,9 @@ install_gnuradio() {
 	echo "INSTALLING Gnuradio"
 
 	case "$DISTRO" in
+		"raspbian 8")
+			sudo apt-get -y install gnuradio gnuradio-dev gr-osmosdr gr-iqbal gqrx-sdr && return 0
+			;;
 		"debian 8")
 			sudo apt-get -y install gnuradio gnuradio-dev gr-osmosdr gr-iqbal gqrx-sdr && return 0
 			;;
