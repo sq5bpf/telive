@@ -146,6 +146,90 @@ http://creativecommons.org/licenses/by-sa/4.0/.
 		<uri></uri>
 		<description></description>
 		<countryname>Belgium</countryname>
+		<infosource>
+			<infouri>http://www.bipt.be/public/files/en/955/Database%20with%20reserved%20and%20allocated%20numbers.xlsx</infouri>
+			<description>List from the national telecoms regulator</description>
+		</infosource>
+		<network>
+			<mnc>1234</mnc>
+			<name>BELGOCONTROL</name>
+		</network>
+		<network>
+			<mnc>1235</mnc>
+			<name>IPALLE</name>
+		</network>
+		<network>
+			<mnc>1236</mnc>
+			<name>Air Liquide</name>
+		</network>
+		<network>
+			<mnc>1237</mnc>
+			<name>Borealis</name>
+		</network>
+		<network>
+			<mnc>1238</mnc>
+			<name>Indaver</name>
+		</network>
+		<network>
+			<mnc>1239</mnc>
+			<name>PSA Antwerp NV</name>
+		</network>
+		<network>
+			<mnc>1241</mnc>
+			<name>BASF NV</name>
+		</network>
+		<network>
+			<mnc>2222</mnc>
+			<name>BRUSSEL SOUTH CHARLEROI AIRPORT</name>
+		</network>
+		<network>
+			<mnc>2345</mnc>
+			<name>Havenbedrijf Gent</name>
+		</network>
+		<network>
+			<mnc>3333</mnc>
+			<name>GlaxoSmithKline Biologicals</name>
+		</network>
+		<network>
+			<mnc>3456</mnc>
+			<name>NATO</name>
+		</network>
+		<network>
+			<mnc>4444</mnc>
+			<name>BP Chembel</name>
+		</network>
+		<network>
+			<mnc>4567</mnc>
+			<name>Liege Airport</name>
+		</network>
+		<network>
+			<mnc>5678</mnc>
+			<name>Int. Luchthaven Oostende-Brugge</name>
+		</network>
+		<network>
+			<mnc>6666</mnc>
+			<name>Council of the European Union</name>
+		</network>
+		<network>
+			<mnc>8004</mnc>
+			<name>Total Raffinaderij Antwerpen</name>
+		</network>
+		<network>
+			<mnc>8016</mnc>
+			<name>Solvic NV</name>
+		</network>
+		<network>
+			<mnc>8018</mnc>
+			<name>Kaneka Belgium NV</name>
+		</network>
+		<network>
+			<mnc>9998</mnc>
+			<name>ASTRID</name>
+		</network>
+		<network>
+			<mnc>9999</mnc>
+			<name>ASTRID</name>
+		</network>
 	</country>
 	<country>
 		<mcc>702</mcc>
