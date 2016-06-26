@@ -2005,6 +2005,10 @@ http://creativecommons.org/licenses/by-sa/4.0/.
 			<name>Miejskie Przedsiębiorstwo Komunikacyjne S. A. (Kraków)</name>
 		</network>
 		<network>
+			<mnc>2108</mnc>
+			<name>ENERGA - OPERATOR S.A.</name>
+		</network>
+		<network>
 			<mnc>2110</mnc>
 			<name>BCT - Bałtycki Terminal Kontenerowy Sp. z o.o.</name>
 		</network>
@@ -2035,6 +2039,10 @@ http://creativecommons.org/licenses/by-sa/4.0/.
 		<network>
 			<mnc>2117</mnc>
 			<name>Metro Warszawskie Sp. z o.o.</name>
+		</network>
+		<network>
+			<mnc>2120</mnc>
+			<name>Polskie Towarzystwo Przesylu i Rozdzialu Energii Elektrycznej</name>
 		</network>
 		<network>
 			<mnc>22</mnc>
