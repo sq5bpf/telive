@@ -1066,11 +1066,6 @@ int insert_freq2(struct freqinfo **freqptr,int reason,uint16_t mnc,uint16_t mcc,
 	freq_changed=1;
 	return(known);
 }
-/* wrapper for compatibility with existing code */
-void insert_freq(struct freqinfo *freqptr,int reason,uint16_t mnc,uint16_t mcc,uint32_t ulf,uint32_t dlf,uint16_t la, uint16_t cc,int rx)
-{
-	insert_freq2(&freqptr,reason,mnc,mcc,0,0,ulf,dlf,la,cc,rx);
-}
 
 /* clear the freq table, delete old frequencies */
 void clear_freqtable(struct freqinfo *freqptr) {
@@ -1877,6 +1872,7 @@ void foundfreq(int rxid) {
 	if (!known) {
 		wprintw(statuswin,"NEW: %s\n",buf);
 		if (log_found_freq) appendfile(freqlogfile,buf);
+		system("aplay /usr/share/kismet/wav/packet.wav");
 	}
 }
 
@@ -1962,7 +1958,7 @@ int parsestat(char *c)
 		tmpdlf=getptrint(c,"DLF:",10);
 		tmpulf=getptrint(c,"ULF:",10);
 		tmpla=getptrint(c,"LA:",10);
-		insert_freq(frequencies,REASON_NETINFO,tmpmnc,tmpmcc,tmpulf,tmpdlf,tmpla,tmpcolour_code,rxid);
+		insert_freq2(&frequencies,REASON_NETINFO,tmpmnc,tmpmcc,0,0,tmpulf,tmpdlf,tmpla,tmpcolour_code,rxid);
 
 
 		/* when there is a lot of interference sometimes we get bogus info, so we wait until there are 2 consecutive frames with the same info */
@@ -2024,7 +2020,7 @@ int parsestat(char *c)
 		tmpulf=getptrint(c,"ULF:",10);
 		tmpla=getptrint(c,"LA:",10);
 		/* TODO: get CC */
-		insert_freq(frequencies,REASON_FREQINFO,tmpmnc,tmpmcc,tmpulf,tmpdlf,tmpla,0,rxid);
+		insert_freq2(&frequencies,REASON_FREQINFO,tmpmnc,tmpmcc,0,0,tmpulf,tmpdlf,tmpla,0,rxid);
 
 	}
 	if (cmpfunc(func,"FREQINFO2")) {
@@ -2035,7 +2031,7 @@ int parsestat(char *c)
 		tmpulf=getptrint(c,"ULF:",10);
 		tmpla=getptrint(c,"LA:",10);
 		/* TODO: get CC */
-		insert_freq(frequencies,REASON_DLFREQ,tmpmnc,tmpmcc,tmpulf,tmpdlf,tmpla,0,rxid);
+		insert_freq2(&frequencies,REASON_DLFREQ,tmpmnc,tmpmcc,0,0,tmpulf,tmpdlf,tmpla,0,rxid);
 		if (telive_auto_tune) tune_free_receiver(grxml_url,rxid,tmpdlf);
 	}
 	if (cmpfunc(func,"DSETUPDEC"))
