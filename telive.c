@@ -1068,8 +1068,8 @@ int insert_freq2(struct freqinfo **freqptr,int reason,uint16_t mnc,uint16_t mcc,
 }
 
 /* clear the freq table, delete old frequencies */
-void clear_freqtable(struct freqinfo *freqptr) {
-	struct freqinfo *ptr=freqptr;
+void clear_freqtable(struct freqinfo **freqptr) {
+	struct freqinfo *ptr=*freqptr;
 	struct freqinfo *prevptr,*nextptr;
 	int del;
 	if (!ptr) return;
@@ -1088,7 +1088,7 @@ void clear_freqtable(struct freqinfo *freqptr) {
 				prevptr->next=nextptr;
 				if (nextptr) nextptr->prev=prevptr;
 			} else {
-				freqptr=nextptr;
+				*freqptr=nextptr;
 				if (nextptr) nextptr->prev=NULL;
 			}
 			freq_changed=1;
@@ -1098,8 +1098,8 @@ void clear_freqtable(struct freqinfo *freqptr) {
 }
 
 /* delete the whole frequency table */
-void clear_all_freqtable(struct freqinfo *freqptr) {
-	struct freqinfo *ptr=freqptr;
+void clear_all_freqtable(struct freqinfo **freqptr) {
+	struct freqinfo *ptr=*freqptr;
 	struct freqinfo *nextptr;
 
 	while(ptr) {
@@ -1107,7 +1107,7 @@ void clear_all_freqtable(struct freqinfo *freqptr) {
 		free(ptr);
 		ptr=nextptr;
 	}
-	freqptr=NULL;
+	*freqptr=NULL;
 }
 
 void display_freq() {
@@ -1475,7 +1475,7 @@ void tickf ()
 
 	if ((current_timeval.tv_sec-last_1s_event)>0) {
 		/* this gets executed every second */
-		clear_freqtable(frequencies);
+		clear_freqtable(&frequencies);
 		timeout_ssis(current_timeval.tv_sec);
 		timeout_idx(current_timeval.tv_sec);
 		last_1s_event=current_timeval.tv_sec;
@@ -1789,7 +1789,7 @@ void keyf(unsigned char r)
 
 				break;
 			case 'z':
-				clear_all_freqtable(frequencies);
+				clear_all_freqtable(&frequencies);
 				clear_all_receivers();
 				clear_locations();
 				grxml_update_receivers(grxml_url);
@@ -2000,7 +2000,7 @@ int parsestat(char *c)
 				netinfo.last_change=tmptime;
 
 				if (telive_receiver_mode!=TELIVE_RX_NORMAL) {  
-					clear_all_freqtable(frequencies);
+					clear_all_freqtable(&frequencies);
 					foundfreq(rxid); 
 					previous_freq_signal=1;
 
