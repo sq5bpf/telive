@@ -10,6 +10,16 @@ is done via external scripts.
 Please read telive_doc.pdf, either in this directory or here:
 https://github.com/sq5bpf/telive/raw/master/telive_doc.pdf
 
+----------- Docker ----------
+
+```
+cd docker
+./run.sh
+```
+
+If you get audio issues, check your pulse audio configuration
+
+```echo "load-module module-esound-protocol-tcp auth-anonymous=1" >> /etc/pulse/system.pa```
 
 ----------- Disclaimer ----------
 
@@ -25,5 +35,4 @@ following calls (but it works most of the time). Maybe one day this will
 be rewritten to look better (or not).
 
 -----------------------------------
-
 
