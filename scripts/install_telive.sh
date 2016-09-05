@@ -17,6 +17,7 @@
 # Everything is the responsibility of the user.
 #
 # Changelog:
+# 20160905: support gnuradio 3.7.x, where x>=10 --sq5bpf
 # 20160621: support raspbian 8 and ubuntu 16 --sq5bpf
 # 20160309: hopefully work around ubuntu 14/mint 17.3 errors --sq5bpf
 # 20160308: add env variables to skip codec install and set tetra dir --sq5bpf
@@ -99,7 +100,7 @@ install_gnuradio() {
 	GR_VERSION=`gnuradio-config-info -v 2>/dev/null|tr -d v`
 
 	case "$GR_VERSION" in
-		3.7.[5-9]*|3.6.*)
+		3.7.[5-9]*|3.7.[1-9][0-9]*|3.6.*)
 			echo "Found supported gnuradio $GR_VERSION"
 			return 0
 			;;
