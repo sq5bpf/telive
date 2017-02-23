@@ -104,6 +104,26 @@ http://creativecommons.org/licenses/by-sa/4.0/.
 		<uri></uri>
 		<description></description>
 		<countryname>Austria</countryname>
+		<infosource>
+			<infouri>https://www.rtr.at/de/tk/SKP/Zugeteilte_SKP_2016-08-23.pdf</infouri>
+			<description>List from the national telecoms regulator</description>
+		</infosource>
+		<network>
+			<mnc>1000</mnc>
+			<name>TETRON</name>
+		</network>
+		<network>
+			<mnc>1010</mnc>
+			<name>Buro der Vereinten Nationen Wien</name>
+		</network>
+		<network>
+			<mnc>1020</mnc>
+			<name>OMV Austria Exploration and Production</name>
+		</network>
+		<network>
+			<mnc>1050</mnc>
+			<name>Aktiengesellschaft der Wiener Lokalbahnen</name>
+		</network>
 	</country>
 	<country>
 		<mcc>400</mcc>
