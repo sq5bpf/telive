@@ -106,6 +106,7 @@ http://creativecommons.org/licenses/by-sa/4.0/.
 		<countryname>Austria</countryname>
 		<infosource>
 			<infouri>https://www.rtr.at/de/tk/SKP/Zugeteilte_SKP_2016-08-23.pdf</infouri>
+			<infouri>https://data.rtr.at/api/v1/tables/skp</infouri>
 			<description>List from the national telecoms regulator</description>
 		</infosource>
 		<network>
