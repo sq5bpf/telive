@@ -2179,6 +2179,10 @@ http://creativecommons.org/licenses/by-sa/4.0/.
 		<uri></uri>
 		<description></description>
 		<countryname>Portugal</countryname>
+		<network>
+			<mnc>3</mnc>
+			<name>Sistema Integrado de Redes Emergencia e Seguranca</name>
+		</network>
 	</country>
 	<country>
 		<mcc>330</mcc>
