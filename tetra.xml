@@ -478,6 +478,10 @@ http://creativecommons.org/licenses/by-sa/4.0/.
 			<name>Damm Cellular Systems A/S</name>
 		</network>
 		<network>
+			<mnc>802</mnc>
+			<name>DONG Energy</name>
+		</network>
+		<network>
 			<mnc>1006</mnc>
 			<name>Copenhagen Malmo Port http://www.cmport.com</name>
 		</network>

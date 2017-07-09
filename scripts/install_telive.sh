@@ -17,6 +17,7 @@
 # Everything is the responsibility of the user.
 #
 # Changelog:
+# 20170709: add support for linux mint 18.2 and debian 9, both are totally untested --sq5bpf
 # 20160905: support gnuradio 3.7.x, where x>=10 --sq5bpf
 # 20160621: support raspbian 8 and ubuntu 16 --sq5bpf
 # 20160309: hopefully work around ubuntu 14/mint 17.3 errors --sq5bpf
@@ -44,6 +45,10 @@ do_distro_specific_stuff() {
 	fi
 	case `get_osr ID` in
 
+		"linuxmint")
+			DISTRO_NAME="ubuntu"
+			DISTRO_VERSION=`get_osr VERSION_ID`
+			;; 
 		"raspbian")
 			DISTRO_NAME="raspbian"
 			DISTRO_VERSION=`get_osr VERSION_ID`
@@ -122,10 +127,13 @@ install_gnuradio() {
 	echo "INSTALLING Gnuradio"
 
 	case "$DISTRO" in
+		"linuxmint 18.2")
+			sudo apt-get -y install gnuradio gnuradio-dev gr-osmosdr gr-iqbal gqrx-sdr && return 0
+			;;
 		"raspbian 8")
 			sudo apt-get -y install gnuradio gnuradio-dev gr-osmosdr gr-iqbal gqrx-sdr && return 0
 			;;
-		"debian 8")
+		"debian 8"|"debian 9")
 			sudo apt-get -y install gnuradio gnuradio-dev gr-osmosdr gr-iqbal gqrx-sdr && return 0
 			;;
 		"debian 7"|"debian 6")
@@ -158,7 +166,7 @@ install_gnuradio() {
 			;;
 	esac
 
-	echo "Unknown distro, please report it, and send the below information:"
+	echo "Unknown distro [$DISTRO], please report it, and send the below information:"
 	cat /etc/os-release
 
 	return 1
