@@ -2301,6 +2301,10 @@ http://creativecommons.org/licenses/by-sa/4.0/.
 		<uri></uri>
 		<description></description>
 		<countryname>Slovakia</countryname>
+		<network>
+			<mnc>1000</mnc>
+			<name>Radiopol</name>
+		</network>
 	</country>
 	<country>
 		<mcc>293</mcc>
