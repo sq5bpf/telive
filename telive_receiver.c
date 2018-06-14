@@ -25,8 +25,8 @@
 int getvaluexml(xmlDoc *doc,xmlNode *a_node,char *vartype,char *varvalue,int varlen) {
 
 	xmlNode *cur_node = NULL;
-	int ret;
 	for (cur_node = a_node; cur_node; cur_node = cur_node->next) {
+		int ret;
 		if (cur_node->type == XML_ELEMENT_NODE) {
 			if (!xmlStrcasecmp(cur_node->name, BAD_CAST"fault")) return(-1);
 			if ((varlen)&&(!xmlStrcasecmp(cur_node->name, BAD_CAST"value"))&&(cur_node->children)) {
