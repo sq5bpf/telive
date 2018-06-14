@@ -354,7 +354,7 @@ void tetraxml_query(uint16_t mcc, uint16_t mnc,xmlDocPtr xml_doc)
 	} else {
 		nodeset = result->nodesetval;
 		keyword=xmlNodeListGetString(tetraxml_doc, nodeset->nodeTab[0]->xmlChildrenNode, 1);
-		tetraxml_country= strdup(keyword);
+		tetraxml_country= (char *) xmlStrdup(keyword);
 		xmlFree(keyword); //should be called for other nodeTab[xxx]
 
 	}
@@ -369,7 +369,7 @@ void tetraxml_query(uint16_t mcc, uint16_t mnc,xmlDocPtr xml_doc)
 	} else {
 		nodeset = result->nodesetval;
 		keyword=xmlNodeListGetString(tetraxml_doc, nodeset->nodeTab[0]->xmlChildrenNode, 1);
-		tetraxml_network= strdup(keyword);
+		tetraxml_network= (char *) xmlStrdup(keyword);
 		xmlFree(keyword); //should be called for other nodeTab[xxx]
 	}
 	xmlXPathFreeContext(xml_context);
@@ -742,7 +742,7 @@ int addcallident(int idx,uint16_t cid,int rxid)
 	}
 	ssis[idx].cid=cid;
 	ssis[idx].lastrx=rxid;
-
+	return(1);
 }
 
 int releasessi(int ssi)
@@ -1021,7 +1021,6 @@ int insert_freq2(struct freqinfo **freqptr,int reason,uint16_t mnc,uint16_t mcc,
 
 	struct freqinfo *ptr=*freqptr;
 	struct freqinfo *prevptr=NULL;
-	char *c;
 	int known=0;
 
 	/* maybe we already know the uplink or downlink frequency */
@@ -1421,9 +1420,8 @@ void do_popen() {
 
 void do_scanning_stuff() {
 	long timediff;
-	struct receiver *ptr;
 	long delaysig=scan_timeout_signal;
-	char buf[256];
+	//  char buf[256];
 
 	timediff=timeval_subtract_ms(&current_timeval,&scan_last_tune);
 
@@ -1555,12 +1553,9 @@ void do_text_input(unsigned char c)
 {
 	int i;
 	int end=0;
-	uint32_t f;
-	int known;
 	uint32_t  tmpu;
 	int tmpint;
 	double tmpdouble;
-	char tmpstr[256];
 
 	i=strlen(interactive_text_buf);
 	switch(c) {
@@ -1884,7 +1879,7 @@ int parsestat(char *c)
 	int ssi=0;
 	int ssi2=0;
 	int usage=0;
-	int encr=0;
+	// int encr=0;
 	int writeflag=1;
 	int sameinfo=0;
 
@@ -1910,7 +1905,7 @@ int parsestat(char *c)
 	ssi=getptrint(c,"SSI:",10);
 	ssi2=getptrint(c,"SSI2:",10);
 	usage=getptrint(c,"IDX:",10);
-	encr=getptrint(c,"ENCR:",10);
+	// encr=getptrint(c,"ENCR:",10);
 	rxid=getptrint(c,"RX:",10);
 	callidentifier=getptrint(c,"CID:",10);
 
@@ -2298,11 +2293,11 @@ void set_grxml_baseband(char *url,uint32_t  freq) {
 
 	struct receiver *ptr;
 	char buf1[64];
-	uint32_t old_baseband;
+	// uint32_t old_baseband;
 	int ret;
 	int i;
 
-	old_baseband=receiver_baseband_freq;
+	// old_baseband=receiver_baseband_freq;
 	receiver_baseband_freq=freq;
 	sprintf(buf1,"%i",receiver_baseband_freq);
 	ret=grxml_send(url,GRXML_SET,"freq","double",buf1,sizeof(buf1));
@@ -2322,6 +2317,7 @@ void set_grxml_ppm(char *url,float ppm) {
 	receiver_ppm=ppm;
 	sprintf(buf1,"%f",receiver_ppm);
 	ret=grxml_send(url,GRXML_SET,"ppm_corr","double",buf1,sizeof(buf1));
+	(void)ret;
 }
 
 void set_grxml_gain(char *url,int gain) {
@@ -2331,6 +2327,7 @@ void set_grxml_gain(char *url,int gain) {
 	receiver_gain=gain;
 	sprintf(buf1,"%i",receiver_gain);
 	ret=grxml_send(url,GRXML_SET,"sdr_gain","double",buf1,sizeof(buf1));
+	(void)ret;
 }
 
 
@@ -2433,13 +2430,14 @@ int tune_grxml_receiver(char *url,int rxid,uint32_t freq,int force) {
 	if (baseband_touched) grxml_update_receivers(url); 
 
 	rx_sanity_check();
+
+	return(1);
 }
 
 /* find a free receiver and use it */
 void tune_free_receiver(char *url,int src_rxid,uint32_t dlf) {
 	int i;
 	struct receiver *ptr;
-	uint64_t f;
 	int ret;
 	int is_free;
 
@@ -2466,6 +2464,7 @@ void tune_free_receiver(char *url,int src_rxid,uint32_t dlf) {
 		if (is_free) {
 			ret=tune_grxml_receiver(url,i,dlf,RX_TUNE_NORMAL);
 			//	wprintw(statuswin,"tune from rx %i to %i  ret=%i\n",src_rxid, dlf,ret);
+			(void) ret;
 			return;
 		}
 		else
@@ -2483,7 +2482,6 @@ void tune_receivers(char *f)
 	char *d;
 	char *e;
 	uint32_t tmpu;
-	double tmpdouble;
 	int rx=1;
 
 	e=strdup(f);
@@ -2669,7 +2667,6 @@ void grxml_update_receivers(char *url) {
 
 /* get config from env variables, maybe i should switch it to getopt() one day */
 void get_cfgenv() {
-	int i;
 	if (getenv("TETRA_OUTDIR"))
 	{
 		outdir=getenv("TETRA_OUTDIR");

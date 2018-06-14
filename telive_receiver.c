@@ -28,12 +28,12 @@ int getvaluexml(xmlDoc *doc,xmlNode *a_node,char *vartype,char *varvalue,int var
 	int ret;
 	for (cur_node = a_node; cur_node; cur_node = cur_node->next) {
 		if (cur_node->type == XML_ELEMENT_NODE) {
-			if (!strcasecmp(cur_node->name,"fault")) return(-1);
-			if ((varlen)&&(!strcasecmp(cur_node->name,"value"))&&(cur_node->children)) {
+			if (!xmlStrcasecmp(cur_node->name, BAD_CAST"fault")) return(-1);
+			if ((varlen)&&(!xmlStrcasecmp(cur_node->name, BAD_CAST"value"))&&(cur_node->children)) {
 /*				
 //check if the type received is the one requested. commented out for now, because sometimes we might get double, and sometimes int				
-				if (strcasecmp(cur_node->children->name,vartype)) return(0); */
-				strncpy(varvalue,xmlNodeListGetString(doc, cur_node->children->xmlChildrenNode, 1),varlen);
+				if (xmlStrcasecmp(cur_node->children->name,vartype)) return(0); */
+				strncpy(varvalue,(const char *)xmlNodeListGetString(doc, cur_node->children->xmlChildrenNode, 1),varlen);
 				return(1);
 			}
 		}
