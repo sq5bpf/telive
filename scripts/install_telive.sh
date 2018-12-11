@@ -1,5 +1,5 @@
 #!/bin/bash
-# install_telive.sh (c) 2015-2016 Jacek Lipkowski <sq5bpf@lipkowski.org>
+# install_telive.sh (c) 2015-2018 Jacek Lipkowski <sq5bpf@lipkowski.org>
 #
 # simple script to install telive under Debian 8, Ubuntu 14 (and maybe 15), Linux mint 17.2
 # 
@@ -17,6 +17,7 @@
 # Everything is the responsibility of the user.
 #
 # Changelog:
+# 20181211: add support for debian 10 --sq5bpf
 # 20170709: add support for linux mint 18.2 and debian 9, both are totally untested --sq5bpf
 # 20160905: support gnuradio 3.7.x, where x>=10 --sq5bpf
 # 20160621: support raspbian 8 and ubuntu 16 --sq5bpf
@@ -56,6 +57,11 @@ do_distro_specific_stuff() {
 		"debian")
 			DISTRO_NAME="debian"
 			DISTRO_VERSION=`get_osr VERSION_ID`
+			if [ -z "$DISTRO_VERSION" ]; then
+				if [[ "`get_osr PRETTY_NAME`" =~ "Linux buster" ]]; then
+					DISTRO_VERSION=10
+				fi
+			fi
 			;; 
 		"ubuntu")
 			#this is either ubuntu or linux mint
@@ -67,9 +73,9 @@ do_distro_specific_stuff() {
 			cat /etc/os-release 
 			;;
 
-	esac
-	DISTRO="$DISTRO_NAME $DISTRO_VERSION"
-}
+		esac
+		DISTRO="$DISTRO_NAME $DISTRO_VERSION"
+	}
 
 verify_prerequisites() {
 	echo "CHECKING prerequisites"
@@ -133,7 +139,7 @@ install_gnuradio() {
 		"raspbian 8")
 			sudo apt-get -y install gnuradio gnuradio-dev gr-osmosdr gr-iqbal gqrx-sdr && return 0
 			;;
-		"debian 8"|"debian 9")
+		"debian 8"|"debian 9"|"debian 10")
 			sudo apt-get -y install gnuradio gnuradio-dev gr-osmosdr gr-iqbal gqrx-sdr && return 0
 			;;
 		"debian 7"|"debian 6")
@@ -146,73 +152,73 @@ install_gnuradio() {
 		"ubuntu 14")
 			for i in ppa:bladerf/bladerf \
 				ppa:ettusresearch/uhd \
-					ppa:myriadrf/drivers \
-					ppa:myriadrf/gnuradio \
-					ppa:gqrx/gqrx-sdr
-					do
-						sudo add-apt-repository -y $i || break
-							done && \
+				ppa:myriadrf/drivers \
+				ppa:myriadrf/gnuradio \
+				ppa:gqrx/gqrx-sdr
+						do
+							sudo add-apt-repository -y $i || break
+						done && \
 							sudo apt-get update && \
 							sudo apt-get install -y gqrx-sdr gnuradio gr-osmosdr hackrf python-numpy && \
 							return 0
-							;;
-					"ubuntu 15"|"ubuntu 16") 
-						sudo apt-get -y install gnuradio gnuradio-dev gr-osmosdr gr-iqbal gqrx-sdr python-numpy && return 0
-			;;
-		*)
-			#unknown distro, not sure what to do here. maybe pretend everything is ok and install? :)
-			echo "Unknown distribution (this should not happen :), for now we'll pretend that it has the right gnuradio packages"
-			sudo apt-get -y install gnuradio gnuradio-dev gr-osmosdr gr-iqbal gqrx && return 0
-			;;
-	esac
+													;;
+												"ubuntu 15"|"ubuntu 16") 
+													sudo apt-get -y install gnuradio gnuradio-dev gr-osmosdr gr-iqbal gqrx-sdr python-numpy && return 0
+													;;
+												*)
+													#unknown distro, not sure what to do here. maybe pretend everything is ok and install? :)
+													echo "Unknown distribution (this should not happen :), for now we'll pretend that it has the right gnuradio packages"
+													sudo apt-get -y install gnuradio gnuradio-dev gr-osmosdr gr-iqbal gqrx && return 0
+													;;
+											esac
 
-	echo "Unknown distro [$DISTRO], please report it, and send the below information:"
-	cat /etc/os-release
+											echo "Unknown distro [$DISTRO], please report it, and send the below information:"
+											cat /etc/os-release
 
-	return 1
-}
+											return 1
+										}
 
-update_packages() {
-	sudo apt-get update; RET=$?
-	if [ "$RET" != 0 ]; then
-		echo "### ERROR UPDATING PACKAGE LISTS!"
-		echo "Make sure you have full internet access, and that your distribution's package repositories are currently avaliable"
-		echo "Try to run 'sudo apt-get update' by hand, and see what you have to do to resolve it"
-		return 1
-	fi
-	return 0
-}
+									update_packages() {
+										sudo apt-get update; RET=$?
+										if [ "$RET" != 0 ]; then
+											echo "### ERROR UPDATING PACKAGE LISTS!"
+											echo "Make sure you have full internet access, and that your distribution's package repositories are currently avaliable"
+											echo "Try to run 'sudo apt-get update' by hand, and see what you have to do to resolve it"
+											return 1
+										fi
+										return 0
+									}
 
-install_packages() {
-	echo "INSTALLING packages"
+								install_packages() {
+									echo "INSTALLING packages"
 
-	sudo apt-get -y install git make libtool libncurses5-dev build-essential autoconf automake vorbis-tools sox alsa-utils unzip xterm libxml2-dev socat
+									sudo apt-get -y install git make libtool libncurses5-dev build-essential autoconf automake vorbis-tools sox alsa-utils unzip xterm libxml2-dev socat
 
 
-}
+								}
 
-install_codec () {
-	echo "INSTALLING codec"
-	git clone https://github.com/sq5bpf/install-tetra-codec && \
-	cd install-tetra-codec && \
-	chmod 755 install.sh  ; RET=$?
-	if [ "$RET" = 0 ]; then
-		if [ "$SKIP_CODEC_INSTALL" ]; then
-			echo "Skipping acelp codec install, please do this:"
-				echo "cd `pwd`"
-				echo "./install.sh"
+							install_codec () {
+								echo "INSTALLING codec"
+								git clone https://github.com/sq5bpf/install-tetra-codec && \
+									cd install-tetra-codec && \
+									chmod 755 install.sh  ; RET=$?
+																	if [ "$RET" = 0 ]; then
+																		if [ "$SKIP_CODEC_INSTALL" ]; then
+																			echo "Skipping acelp codec install, please do this:"
+																			echo "cd `pwd`"
+																			echo "./install.sh"
 
 #if the codec is not installed then we need to make the /tetra dir ourselves
-				TBASEDIR=/tetra
-				MYUSER=`id -nu`
-				MYGROUP=`id -ng`
-				sudo mkdir -p "${TBASEDIR}/bin" && \
-				sudo chown -R ${MYUSER}.${MYGROUP} "$TBASEDIR"
-		else
-			./install.sh; RET=0
-				fi
-				fi
-	return $RET
+TBASEDIR=/tetra
+MYUSER=`id -nu`
+MYGROUP=`id -ng`
+sudo mkdir -p "${TBASEDIR}/bin" && \
+	sudo chown -R ${MYUSER}.${MYGROUP} "$TBASEDIR"
+else
+	./install.sh; RET=0
+fi
+fi
+return $RET
 }
 
 
@@ -228,27 +234,27 @@ install_libosmocore () {
 			make && \
 			sudo make install && \
 			sudo ldconfig
-	fi
-}
+				fi
+			}
 
-install_osmo_tetra_sq5bpf() {
-	echo "INSTALLING osmo-tetra-sq5bpf"
-	git clone https://github.com/sq5bpf/osmo-tetra-sq5bpf && \
-		cd osmo-tetra-sq5bpf/src && \
-		make
-}
+		install_osmo_tetra_sq5bpf() {
+			echo "INSTALLING osmo-tetra-sq5bpf"
+			git clone https://github.com/sq5bpf/osmo-tetra-sq5bpf && \
+				cd osmo-tetra-sq5bpf/src && \
+				make
+			}
 
-install_telive() {
-	echo "INSTALLING telive"
-	git clone https://github.com/sq5bpf/telive && \
-		cd telive && \
-		make && \
-		chmod 755 install.sh && \
-		./install.sh
-}
+		install_telive() {
+			echo "INSTALLING telive"
+			git clone https://github.com/sq5bpf/telive && \
+				cd telive && \
+				make && \
+				chmod 755 install.sh && \
+				./install.sh
+			}
 
-make_desktop_icons() {
-cat > ~/Desktop/xterm_telive.desktop <<EOF2
+		make_desktop_icons() {
+			cat > ~/Desktop/xterm_telive.desktop <<EOF2
 [Desktop Entry]
 Version=1.0
 Type=Application
