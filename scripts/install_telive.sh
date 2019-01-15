@@ -162,7 +162,7 @@ install_gnuradio() {
 							sudo apt-get install -y gqrx-sdr gnuradio gr-osmosdr hackrf python-numpy && \
 							return 0
 													;;
-												"ubuntu 15"|"ubuntu 16") 
+												"ubuntu 15"|"ubuntu 16"|"ubuntu 17"*|"ubuntu 18"*|"ubuntu 19"*) 
 													sudo apt-get -y install gnuradio gnuradio-dev gr-osmosdr gr-iqbal gqrx-sdr python-numpy && return 0
 													;;
 												*)
