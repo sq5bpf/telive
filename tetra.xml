@@ -2177,6 +2177,11 @@ http://creativecommons.org/licenses/by-sa/4.0/.
 			<mnc>16010</mnc>
 			<name>MPK Poznan</name>
 		</network>
+		<network>
+			<mnc>2605</mnc>
+			<name>Amateur radio repeater SP5KAB</name>
+		</network>
+
 	</country>
 	<country>
 		<mcc>268</mcc>
