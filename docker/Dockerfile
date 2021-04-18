@@ -1,4 +1,4 @@
-from ubuntu
+from ubuntu:bionic
 RUN apt update && DEBIAN_FRONTEND=noninteractive apt install -y wget sudo vim nano
 
 ADD files/* /tmp/
