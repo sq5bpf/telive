@@ -16,4 +16,6 @@ void grxml_update_receivers(char *url);
 void scan_tune(char *url);
 void set_grxml_baseband(char *url,uint32_t  freq);
 void set_grxml_ppm(char *url,float ppm);
- void set_grxml_gain(char *url,int gain);
+void set_grxml_gain(char *url,int gain);
+int tune_grxml_receiver(char *url,int rxid,uint32_t freq,int force);
+int get_scan_range(char *list,int item);

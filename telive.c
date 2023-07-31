@@ -354,7 +354,7 @@ void tetraxml_query(uint16_t mcc, uint16_t mnc,xmlDocPtr xml_doc)
 	} else {
 		nodeset = result->nodesetval;
 		keyword=xmlNodeListGetString(tetraxml_doc, nodeset->nodeTab[0]->xmlChildrenNode, 1);
-		tetraxml_country= strdup(keyword);
+		tetraxml_country= (char *) xmlStrdup(keyword);
 		xmlFree(keyword); //should be called for other nodeTab[xxx]
 
 	}
@@ -369,7 +369,7 @@ void tetraxml_query(uint16_t mcc, uint16_t mnc,xmlDocPtr xml_doc)
 	} else {
 		nodeset = result->nodesetval;
 		keyword=xmlNodeListGetString(tetraxml_doc, nodeset->nodeTab[0]->xmlChildrenNode, 1);
-		tetraxml_network= strdup(keyword);
+		tetraxml_network= (char *) xmlStrdup(keyword);
 		xmlFree(keyword); //should be called for other nodeTab[xxx]
 	}
 	xmlXPathFreeContext(xml_context);
@@ -410,7 +410,6 @@ int initopis()
 	FILE *g;
 	char str[100];
 	struct opisy *ptr,*prevptr;
-	char *c;
 
 	prevptr=NULL;
 	clearopisy();
@@ -419,6 +418,7 @@ int initopis()
 	str[sizeof(str)-1]=0;
 	while(!feof(g))
 	{
+		char *c;
 		if (!fgets(str,sizeof(str)-1,g)) break;
 		c=strchr(str,' ');
 		if (c==NULL) continue;
@@ -508,7 +508,7 @@ void dump_kml_file() {
 
 	while(ptr)
 	{
-		fprintf(f,"<Placemark> <name>%i</name> <description>%s %s</description> <Point> <coordinates>%f,%f,0</coordinates></Point></Placemark>\n",ptr->ssi,lookupssi(ptr->ssi),ptr->description,ptr->longtitude,ptr->lattitude);
+		fprintf(f,"<Placemark> <name>%u</name> <description>%s %s</description> <Point> <coordinates>%f,%f,0</coordinates></Point></Placemark>\n",ptr->ssi,lookupssi(ptr->ssi),ptr->description,ptr->longtitude,ptr->lattitude);
 		ptr=ptr->next;
 	}
 
@@ -742,7 +742,7 @@ int addcallident(int idx,uint16_t cid,int rxid)
 	}
 	ssis[idx].cid=cid;
 	ssis[idx].lastrx=rxid;
-
+	return(1);
 }
 
 int releasessi(int ssi)
@@ -877,10 +877,9 @@ void timeout_receivers() {
 /* clear all known receivers */
 void clear_all_receivers() {
 	struct receiver *ptr=receivers;
-	struct receiver *ptr2;
 
 	while(ptr) {
-		ptr2=ptr;
+		struct receiver *ptr2=ptr;
 		ptr=ptr->next;
 		free(ptr2);
 
@@ -948,9 +947,7 @@ void dump_freqdb()
 	struct freqinfo *ptr2;
 	FILE *f;
 	int lastmnc;
-	uint32_t tmpmnc=0;
 	uint32_t tmpmcc=0;
-	int i;
 	f=fopen(freqreportfile,"w+");
 	if (!f) return;
 
@@ -960,8 +957,8 @@ void dump_freqdb()
 	/*  sort by MNC, the list isn't that  big, so we just use the dumbest algorithm which traverses the list multiple times */
 	lastmnc=0;
 	while(1) {
-		i=0;
-		tmpmnc=0xffff;
+		int i=0;
+		uint32_t tmpmnc=0xffff;
 
 		ptr=freqdb;
 		while(ptr) {
@@ -974,7 +971,7 @@ void dump_freqdb()
 		lastmnc=tmpmnc;
 
 		tetraxml_query(tmpmcc,tmpmnc,tetraxml_doc);
-		sprintf(buf,"########  MCC %i (%s)  MNC %i (%s)   ########\n",tmpmcc,tetraxml_country,tmpmnc,tetraxml_network); fputs(buf,f);
+		sprintf(buf,"########  MCC %u (%s)  MNC %u (%s)   ########\n",tmpmcc,tetraxml_country,tmpmnc,tetraxml_network); fputs(buf,f);
 
 		ptr2=freqdb;
 		while(ptr2) 
@@ -1021,7 +1018,6 @@ int insert_freq2(struct freqinfo **freqptr,int reason,uint16_t mnc,uint16_t mcc,
 
 	struct freqinfo *ptr=*freqptr;
 	struct freqinfo *prevptr=NULL;
-	char *c;
 	int known=0;
 
 	/* maybe we already know the uplink or downlink frequency */
@@ -1071,13 +1067,12 @@ int insert_freq2(struct freqinfo **freqptr,int reason,uint16_t mnc,uint16_t mcc,
 void clear_freqtable(struct freqinfo **freqptr) {
 	struct freqinfo *ptr=*freqptr;
 	struct freqinfo *prevptr,*nextptr;
-	int del;
 	if (!ptr) return;
 
 	time_t timenow=time(0);
 
 	while(ptr) {
-		del=0;
+		int del=0;
 		if ((timenow-ptr->last_change)>freq_timeout) del=1; /* timed out */
 		if ((!ptr->ul_freq)&&(!ptr->dl_freq)) del=1; /* no frequency info */
 		if (del) {
@@ -1214,7 +1209,7 @@ void display_freq() {
 
 		if ((time_now-rptr->lastburst)<3) { valid_rx=1; } else { valid_rx=0; }
 
-		sprintf(tmpstr,"%i%c\t%+3.3i %s\t",rptr->rxid,valid_rx?'*':' ',rptr->afc,buf);
+		sprintf(tmpstr,"%u%c\t%+3.3i %s\t",rptr->rxid,valid_rx?'*':' ',rptr->afc,buf);
 		if (rptr->freq) {
 			sprintf(tmpstr2,"%3.4fMHz",rptr->freq/1000000.0);
 			strcat(tmpstr,tmpstr2);
@@ -1377,7 +1372,7 @@ void timeout_rec(time_t t)
 	int i;
 	for (i=0;i<MAXUS;i++) {
 		if ((strlen(ssis[i].curfile))&&(ssis[i].ssi_time_rec+rec_timeout<t)) {
-			snprintf(tmpfile,sizeof(tmpfile),"%s/traffic_%s_idx%i_callid%i_%i_%i_%i.out",outdir,ssis[i].curfiletime,i,ssis[i].cid,ssis[i].ssi[0],ssis[i].ssi[1],ssis[i].ssi[2]);
+			snprintf(tmpfile,sizeof(tmpfile),"%s/traffic_%s_idx%i_callid%u_%u_%u_%u.out",outdir,ssis[i].curfiletime,i,ssis[i].cid,ssis[i].ssi[0],ssis[i].ssi[1],ssis[i].ssi[2]);
 			rename(ssis[i].curfile,tmpfile);
 			ssis[i].curfile[0]=0;
 			ssis[i].active=0;
@@ -1421,9 +1416,8 @@ void do_popen() {
 
 void do_scanning_stuff() {
 	long timediff;
-	struct receiver *ptr;
 	long delaysig=scan_timeout_signal;
-	char buf[256];
+	//  char buf[256];
 
 	timediff=timeval_subtract_ms(&current_timeval,&scan_last_tune);
 
@@ -1555,12 +1549,9 @@ void do_text_input(unsigned char c)
 {
 	int i;
 	int end=0;
-	uint32_t f;
-	int known;
 	uint32_t  tmpu;
 	int tmpint;
 	double tmpdouble;
-	char tmpstr[256];
 
 	i=strlen(interactive_text_buf);
 	switch(c) {
@@ -1633,15 +1624,16 @@ void do_text_input(unsigned char c)
 
 void keyf(unsigned char r)
 {
-	time_t tp;
-	char tmpstr[40];
-	char tmpstr2[80];
 	if (interactive_text_input) {
 		/* handle interactive text input */ 
 		do_text_input(r);
 	} 
 	else 
 	{
+		time_t tp;
+		char tmpstr[40];
+		char tmpstr2[80];
+
 		/* handle keystroke commands */
 		switch (r) {
 			case 'l':
@@ -1879,28 +1871,15 @@ void foundfreq(int rxid) {
 int parsestat(char *c)
 {
 	char *func;
-	char *t,*lonptr,*latptr;
 	int idtype=0;
 	int ssi=0;
 	int ssi2=0;
 	int usage=0;
-	int encr=0;
+	// int encr=0;
 	int writeflag=1;
-	int sameinfo=0;
 
-	char tmpstr[BUFLEN*2];
-	char tmpstr2[BUFLEN*2];
 	time_t tp;
-	uint16_t tmpmcc;
-	uint16_t tmpmnc;
-	uint16_t tmpla;
-	uint8_t tmpcolour_code;
-	uint32_t tmpdlf,tmpulf;
 	int rxid;
-	int callingssi,calledssi;
-	char *sdsbegin;
-	time_t tmptime;
-	float longtitude,lattitude;
 	uint16_t callidentifier;
 	struct receiver *ptr;
 	int i;
@@ -1910,7 +1889,7 @@ int parsestat(char *c)
 	ssi=getptrint(c,"SSI:",10);
 	ssi2=getptrint(c,"SSI2:",10);
 	usage=getptrint(c,"IDX:",10);
-	encr=getptrint(c,"ENCR:",10);
+	// encr=getptrint(c,"ENCR:",10);
 	rxid=getptrint(c,"RX:",10);
 	callidentifier=getptrint(c,"CID:",10);
 
@@ -1951,6 +1930,13 @@ int parsestat(char *c)
 
 
 	if (cmpfunc(func,"NETINFO")) {
+		int sameinfo=0;
+		uint32_t tmpdlf,tmpulf;
+		uint16_t tmpmcc;
+		uint16_t tmpmnc;
+		uint16_t tmpla;
+		uint8_t tmpcolour_code;
+
 		writeflag=0;
 		tmpmnc=getptrint(c,"MNC:",16);	
 		tmpmcc=getptrint(c,"MCC:",16);	
@@ -1977,7 +1963,7 @@ int parsestat(char *c)
 		if (sameinfo) {
 			if ((tmpmnc!=netinfo.mnc)||(tmpmcc!=netinfo.mcc)||(tmpcolour_code!=netinfo.colour_code)||(tmpdlf!=netinfo.dl_freq)||(tmpulf!=netinfo.ul_freq)||(tmpla!=netinfo.la))
 			{
-
+				time_t tmptime=time(0);
 				netinfo.mnc=tmpmnc;
 				netinfo.mcc=tmpmcc;
 				netinfo.colour_code=tmpcolour_code;
@@ -1985,7 +1971,6 @@ int parsestat(char *c)
 				netinfo.ul_freq=tmpulf;
 				netinfo.la=tmpla;
 				updopis();
-				tmptime=time(0);
 
 				if (netinfo.last_change==tmptime) { netinfo.changes++; } else { netinfo.changes=0; }
 				if (netinfo.changes>10) {
@@ -2013,6 +1998,11 @@ int parsestat(char *c)
 
 	}
 	if (cmpfunc(func,"FREQINFO1")) {
+		uint16_t tmpmcc;
+		uint16_t tmpmnc;
+		uint16_t tmpla;
+		uint32_t tmpdlf,tmpulf;
+
 		writeflag=0;
 		tmpmnc=getptrint(c,"MNC:",16);	
 		tmpmcc=getptrint(c,"MCC:",16);	
@@ -2024,6 +2014,11 @@ int parsestat(char *c)
 
 	}
 	if (cmpfunc(func,"FREQINFO2")) {
+		uint16_t tmpmcc;
+		uint16_t tmpmnc;
+		uint16_t tmpla;
+		uint32_t tmpdlf,tmpulf;
+
 		writeflag=0;
 		tmpmnc=getptrint(c,"MNC:",16);	
 		tmpmcc=getptrint(c,"MCC:",16);	
@@ -2076,6 +2071,9 @@ int parsestat(char *c)
 	}
 
 	if (cmpfunc(func,"SDSDEC")) {
+		char *lonptr,*latptr;
+		int callingssi,calledssi;
+		char *sdsbegin;
 		callingssi=getptrint(c,"CallingSSI:",10);
 		calledssi=getptrint(c,"CalledSSI:",10);
 		sdsbegin=strstr(c,"DATA:");
@@ -2091,6 +2089,8 @@ int parsestat(char *c)
 		/* handle location */
 		if ((kml_tmp_file)&&(strstr(c,"INVALID_POSITION")==0)&&(latptr)&&(lonptr))
 		{
+			char *t;
+			float longtitude,lattitude;
 			lattitude=atof(latptr);
 			longtitude=atof(lonptr);
 			t=latptr;
@@ -2132,6 +2132,8 @@ int parsestat(char *c)
 	if (alldump) writeflag=1;
 	if ((writeflag)&&(strcmp(c,prevtmsg)))
 	{
+		char tmpstr[BUFLEN*2];
+		char tmpstr2[BUFLEN*2];
 		tp=time(0);
 		strftime(tmpstr,40,"%Y%m%d %H:%M:%S",localtime(&tp));
 
@@ -2152,9 +2154,7 @@ int parsetraffic(unsigned char *buf)
 {
 	unsigned char *c;
 	int usage;
-	int len=1380;
 	time_t tt=time(0);
-	FILE *f;
 	int rxid;
 	struct receiver *ptr;
 
@@ -2175,6 +2175,8 @@ int parsetraffic(unsigned char *buf)
 	ssis[usage].timeout=tt;
 
 	if ((strncmp((char *)buf,"TRA:",4)==0)&&(!ssis[usage].encr)) {
+		int len=1380;
+
 		if ((mutessi)&&(!ssis[usage].ssi[0])&&(!ssis[usage].ssi[1])&&(!ssis[usage].ssi[2])) return(0); /* ignore it if we don't know any ssi for this usage identifier */
 
 		findtoplay(0);
@@ -2216,7 +2218,7 @@ int parsetraffic(unsigned char *buf)
 		if (strlen(ssis[usage].curfile))
 		{
 			if (ps_record) {	
-				f=fopen(ssis[usage].curfile,"ab");
+				FILE *f=fopen(ssis[usage].curfile,"ab");
 				if (f) {
 					fwrite(c, 1, len, f);
 					fclose(f);
@@ -2234,7 +2236,6 @@ int parsetraffic(unsigned char *buf)
 void grxml_autocorrect_ppm(char *url)
 {
 	int i;
-	struct receiver *ptr;
 	int l=0;
 	int n=0;
 	int corr=0;
@@ -2244,7 +2245,7 @@ void grxml_autocorrect_ppm(char *url)
 	float step;
 
 	for (i=1;i<=grxml_rx_channels; i++) {
-		ptr=find_receiver(i);
+		struct receiver *ptr=find_receiver(i);
 		if ((current_timeval.tv_sec-ptr->lastburst)>3) continue;
 		if (ptr->state&RX_MUTED) continue;
 		l++;
@@ -2268,23 +2269,24 @@ void grxml_autocorrect_ppm(char *url)
 
 /* receiver sanity  check  */
 void rx_sanity_check() {
-	struct receiver *ptr,*ptr2;
-	int i,j;
+	int i;
 
 	for (i=1;i<=grxml_rx_channels; i++) {
+		struct receiver *ptr2;
+		int j;
 
 		ptr2=find_receiver(i);
 		if ((ptr2)&&(ptr2->state&RX_MUTED)) continue;
 
 		for (j=i+1;j<=grxml_rx_channels;j++) {
-			ptr=find_receiver(j);
+			struct receiver *ptr=find_receiver(j);
 			if ((ptr)&&(ptr->state&RX_MUTED)) continue;
 
 
 
-			if (ptr->freq==ptr2->freq) {
+			if ((ptr)&&(ptr->freq==ptr2->freq)) {
 				//				wprintw(statuswin,"disabling rx %i (same as %i)\n",j,i);
-				if (ptr) ptr->state=ptr->state|RX_MUTED;
+				ptr->state=ptr->state|RX_MUTED;
 
 
 			}
@@ -2298,13 +2300,13 @@ void set_grxml_baseband(char *url,uint32_t  freq) {
 
 	struct receiver *ptr;
 	char buf1[64];
-	uint32_t old_baseband;
+	// uint32_t old_baseband;
 	int ret;
 	int i;
 
-	old_baseband=receiver_baseband_freq;
+	// old_baseband=receiver_baseband_freq;
 	receiver_baseband_freq=freq;
-	sprintf(buf1,"%i",receiver_baseband_freq);
+	sprintf(buf1,"%u",receiver_baseband_freq);
 	ret=grxml_send(url,GRXML_SET,"freq","double",buf1,sizeof(buf1));
 	if (!ret)  return; /* TODO: handle this error somehow */
 
@@ -2322,6 +2324,7 @@ void set_grxml_ppm(char *url,float ppm) {
 	receiver_ppm=ppm;
 	sprintf(buf1,"%f",receiver_ppm);
 	ret=grxml_send(url,GRXML_SET,"ppm_corr","double",buf1,sizeof(buf1));
+	(void)ret;
 }
 
 void set_grxml_gain(char *url,int gain) {
@@ -2331,6 +2334,7 @@ void set_grxml_gain(char *url,int gain) {
 	receiver_gain=gain;
 	sprintf(buf1,"%i",receiver_gain);
 	ret=grxml_send(url,GRXML_SET,"sdr_gain","double",buf1,sizeof(buf1));
+	(void)ret;
 }
 
 
@@ -2366,7 +2370,7 @@ int tune_grxml_receiver(char *url,int rxid,uint32_t freq,int force) {
 	if ((force==RX_TUNE_FORCE_BASEBAND)&&(over_baseband)) {
 		/* if it doesn't fit, then just change the baseband frequency by brutal force and mute all other channels */
 		receiver_baseband_freq=freq-BASEBAND_OFFSET;
-		sprintf(buf1,"%i",receiver_baseband_freq);
+		sprintf(buf1,"%u",receiver_baseband_freq);
 		ret=grxml_send(url,GRXML_SET,"freq","double",buf1,sizeof(buf1));
 		if (!ret)  return(0); /* TODO: handle this error somehow */
 		baseband_touched=1;
@@ -2402,7 +2406,7 @@ int tune_grxml_receiver(char *url,int rxid,uint32_t freq,int force) {
 		update_receiver_freq(rxid,freq);
 
 		/* set new baseband and retune everything */
-		sprintf(buf1,"%i",receiver_baseband_freq);
+		sprintf(buf1,"%u",receiver_baseband_freq);
 		ret=grxml_send(url,GRXML_SET,"freq","double",buf1,sizeof(buf1));
 		if (!ret)  return(0); /* TODO: handle this error somehow */
 		baseband_touched=1;
@@ -2433,13 +2437,14 @@ int tune_grxml_receiver(char *url,int rxid,uint32_t freq,int force) {
 	if (baseband_touched) grxml_update_receivers(url); 
 
 	rx_sanity_check();
+
+	return(1);
 }
 
 /* find a free receiver and use it */
 void tune_free_receiver(char *url,int src_rxid,uint32_t dlf) {
 	int i;
 	struct receiver *ptr;
-	uint64_t f;
 	int ret;
 	int is_free;
 
@@ -2466,6 +2471,7 @@ void tune_free_receiver(char *url,int src_rxid,uint32_t dlf) {
 		if (is_free) {
 			ret=tune_grxml_receiver(url,i,dlf,RX_TUNE_NORMAL);
 			//	wprintw(statuswin,"tune from rx %i to %i  ret=%i\n",src_rxid, dlf,ret);
+			(void) ret;
 			return;
 		}
 		else
@@ -2483,7 +2489,6 @@ void tune_receivers(char *f)
 	char *d;
 	char *e;
 	uint32_t tmpu;
-	double tmpdouble;
 	int rx=1;
 
 	e=strdup(f);
@@ -2531,7 +2536,6 @@ int inc_scan_range(char *list,int item,int dir)
 int get_scan_range(char *list,int item)
 {
 	char *lsl=strdup(list);
-	char *d;
 	char *c;
 	int i;
 	double lo,hi,step;
@@ -2544,7 +2548,7 @@ int get_scan_range(char *list,int item)
 		c++;
 	}
 	if (c) {
-		d=c+1;
+		char *d=c+1;
 		while (*d) {
 			if (*d==';') { *d=0; break; }
 			d++;
@@ -2633,7 +2637,6 @@ void grxml_update_receivers(char *url) {
 	int ret;
 	char buf[128];
 	char buf2[128];
-	struct receiver *ptr;
 
 	ret=grxml_send(url,GRXML_GET,"freq","double",buf,sizeof(buf));
 	if (!ret)  return; /* TODO: handle this error somehow */
@@ -2652,6 +2655,7 @@ void grxml_update_receivers(char *url) {
 	receiver_gain=atoi(buf);
 
 	for(i=1;i<=grxml_rx_channels; i++) {
+		struct receiver *ptr;
 		ptr=update_receivers(i);
 		sprintf(buf2,"xlate_offset%i",i);
 		ptr->state=RX_DEFINED;
@@ -2669,7 +2673,6 @@ void grxml_update_receivers(char *url) {
 
 /* get config from env variables, maybe i should switch it to getopt() one day */
 void get_cfgenv() {
-	int i;
 	if (getenv("TETRA_OUTDIR"))
 	{
 		outdir=getenv("TETRA_OUTDIR");
@@ -2853,11 +2856,11 @@ int main(void)
 	signal(SIGPIPE,SIG_IGN);
 
 	fd_set rfds;
-	int nfds;
-	int r;
 	struct timeval timeout;
 
 	while (1) {
+		int nfds;
+		int r;
 		FD_ZERO(&rfds);
 		FD_SET(s,&rfds);
 		FD_SET(0,&rfds);
@@ -2890,7 +2893,7 @@ int main(void)
 				diep("recvfrom()");
 
 
-			if ((telive_receiver_mode==TELIVE_RX_NORMAL)||((telive_receiver_mode!=TELIVE_RX_NORMAL)&&(scan_state!=SCANSTATE_NULL))) {
+			if ((telive_receiver_mode==TELIVE_RX_NORMAL)||(scan_state!=SCANSTATE_NULL)) {
 				c=strstr((char *)buf,"TETMON_begin");
 				if (c)
 				{
