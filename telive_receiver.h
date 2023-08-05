@@ -38,6 +38,12 @@ extern int grxml_rx_channels;
 
 int grxml_discover_receiver(char *url);
 
+enum encryption_options {
+	ENCOPTION_UNKNOWN = 0,
+	ENCOPTION_DISABLED = 1,
+	ENCOPTION_ENABLED = 2
+};
+
 
 /* this structure is used to describe all known frequencies */
 struct freqinfo {
@@ -50,6 +56,7 @@ struct freqinfo {
 	uint16_t la; /* LA */
 	time_t last_change; /* timestamp when this entry changed the last time */
 	int reason; /* bit flags giving the reason why this entry was found */
+	int encoption; /* is the encryption option enabled on in this network */
 	int rx; /* which receiver we received this on */
 	void *next; 
 	void *prev;

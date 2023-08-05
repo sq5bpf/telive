@@ -1,9 +1,10 @@
-/* telive v1.8 - tetra live monitor
- * (c) 2014-2016 Jacek Lipkowski <sq5bpf@lipkowski.org>
+/* telive v1.10 - tetra live monitor
+ * (c) 2014-2023 Jacek Lipkowski <sq5bpf@lipkowski.org>
  * Licensed under GPLv3, please read the file LICENSE, which accompanies 
  * the telive program sources 
  *
  * Changelog:
+ * v1.10 - show information about encryption, fix tickf scheduling under load --sq5bpf
  * v1.9 - better text input, scanning support --sq5bpf
  * v1.8 - handle osmo-tetra-sq5bpf protocol changes, use call identifiers for some stuff, various fixes --sq5bpf
  * v1.7 - show country and network name --sq5bpf
@@ -53,7 +54,7 @@
 #include "telive.h"
 #include "telive_receiver.h"
 
-#define TELIVE_VERSION "1.9"
+#define TELIVE_VERSION "1.10"
 
 #define BUFLEN 8192
 #define PORT 7379
@@ -146,6 +147,7 @@ struct netinfo_s {
 	uint32_t dl_freq;
 	uint32_t ul_freq;
 	uint16_t la;
+	int crypt;
 	time_t last_change;
 	uint32_t changes;
 } netinfo;
@@ -260,6 +262,8 @@ struct receiver {
 	void *prev;
 	time_t lastburst;
 	int state;
+        int encoption; /* is the encryption option enabled on in this network */
+        int seen_encryptions; /* bitmask of the encryption types we've seen so far */
 };
 
 uint32_t receiver_baseband_freq=0; /* the baseband frequency of the receiver */
@@ -286,6 +290,7 @@ int ps_mute=0;
 int do_log=0;
 int last_burst=0;
 
+char encryption_info[3][8] = {"", "CLEAR", "Crypt"};
 
 enum telive_screen { DISPLAY_IDX, DISPLAY_FREQ, DISPLAY_END };
 int display_state=DISPLAY_IDX;
@@ -909,6 +914,19 @@ void update_receiver_afc(int rx,int afc) {
 	if (ptr) ptr->afc=afc;
 }
 
+/* update receiver encryption info */
+void update_receiver_encinfo(int rx,int encoption,int seen_encryptions) {
+
+	struct receiver *ptr;
+
+	ptr=find_receiver(rx);
+	if (ptr) 
+	{
+		ptr->encoption=encoption;
+		ptr->seen_encryptions=seen_encryptions;
+	}
+}
+
 void update_receiver_freq(int rx,uint32_t freq) {
 
 	struct receiver *ptr;
@@ -930,6 +948,7 @@ void update_receiver_lastburst(int rx) {
 
 	if (ptr) ptr->lastburst=current_timeval.tv_sec;
 }
+
 
 
 
@@ -989,9 +1008,9 @@ void dump_freqdb()
 			tetraxml_query(ptr2->mcc,ptr2->mnc,tetraxml_doc);
 
 			if (ptr2->mcc==tmpmcc) {
-				sprintf(buf,"%3.4fMHz MCC %i MNC %i LA %i CC %i  %s\n",ptr2->rx_freq/1000000.0,ptr2->mcc,ptr2->mnc,ptr2->la,ptr2->cc,buf2);
+				sprintf(buf,"%3.4fMHz MCC %i MNC %i LA %i CC %i %s %s\n",ptr2->rx_freq/1000000.0,ptr2->mcc,ptr2->mnc,ptr2->la,ptr2->cc,encryption_info[ptr2->encoption],buf2);
 			} else {
-				sprintf(buf,"%3.4fMHz MCC %i (%s) MNC %i (%s) LA %i CC %i  %s\n",ptr2->rx_freq/1000000.0,ptr2->mcc,tetraxml_country,ptr2->mnc,tetraxml_network,ptr2->la,ptr2->cc,buf2);
+				sprintf(buf,"%3.4fMHz MCC %i (%s) MNC %i (%s) LA %i CC %i  %s %s\n",ptr2->rx_freq/1000000.0,ptr2->mcc,tetraxml_country,ptr2->mnc,tetraxml_network,ptr2->la,ptr2->cc,encryption_info[ptr2->encoption],buf2);
 			}
 			fputs(buf,f);
 			ptr2=ptr2->next;
@@ -1016,7 +1035,7 @@ int isknown_rxf(struct freqinfo **freqptr,uint32_t rxf)
 }
 
 /* insert frequency into the freq table */
-int insert_freq2(struct freqinfo **freqptr,int reason,uint16_t mnc,uint16_t mcc,uint32_t rxf,int match_rxf,uint32_t ulf,uint32_t dlf,uint16_t la, uint16_t cc,int rx)
+int insert_freq2(struct freqinfo **freqptr,int reason,uint16_t mnc,uint16_t mcc,uint32_t rxf,int match_rxf,uint32_t ulf,uint32_t dlf,uint16_t la, uint16_t cc,int rx,int encoption)
 {
 
 	struct freqinfo *ptr=*freqptr;
@@ -1063,6 +1082,7 @@ int insert_freq2(struct freqinfo **freqptr,int reason,uint16_t mnc,uint16_t mcc,
 	ptr->mnc=mnc;
 	ptr->reason=ptr->reason|reason;
 	ptr->rx=rx;
+	ptr->encoption=encoption;
 	freq_changed=1;
 	return(known);
 }
@@ -1113,13 +1133,14 @@ void clear_all_freqtable(struct freqinfo **freqptr) {
 void display_freq() {
 	char tmpstr2[64];
 	char tmpstr[256];
+	int tmpint;
 	struct freqinfo *ptr=frequencies;
 	struct receiver *rptr=receivers;
 	time_t time_now=time(0);
 
 	wclear(freqwin);
 	tetraxml_query(netinfo.mcc,netinfo.mnc,tetraxml_doc);
-	wprintw(freqwin,"\nCountry: %s [%i]\tNetwork: %s [%i]\n\n",tetraxml_country,netinfo.mcc,tetraxml_network,netinfo.mnc);
+	wprintw(freqwin,"\nCountry: %s [%i]\tNetwork: %s [%i]  %s\n\n",tetraxml_country,netinfo.mcc,tetraxml_network,netinfo.mnc, encryption_info[netinfo.crypt]);
 
 
 	wprintw(freqwin,"\n***  Known frequencies:  ***\n");
@@ -1169,6 +1190,7 @@ void display_freq() {
 		strcat(tmpstr,"]\t");
 		sprintf(tmpstr2,"RX:%i",ptr->rx);
 		strcat(tmpstr,tmpstr2);
+
 		wprintw(freqwin,"%s\n",tmpstr);
 		ptr=ptr->next;
 	}
@@ -1227,7 +1249,30 @@ void display_freq() {
 		} else
 		{
 			strcat(tmpstr,"\t");
+
+			if (rptr->encoption!=ENCOPTION_UNKNOWN) {
+				if (rptr->encoption==ENCOPTION_DISABLED) {
+					strcat(tmpstr,"CLEAR ");
+				} else {
+					strcat(tmpstr,"CRYPT:");
+					for(tmpint=0;tmpint<8;tmpint++) {
+						if (rptr->seen_encryptions&(1<<tmpint)) {
+							if (tmpint==0) {
+								strcat(tmpstr," NONE");
+							} else {
+								sprintf(tmpstr2," TEA%i",tmpint);
+								strcat(tmpstr,tmpstr2);
+							}
+						}
+					}
+				}
+
+			} else {
+				strcat(tmpstr,"         \t");
+			}
+
 		}
+
 		wprintw(freqwin,"%s\n",tmpstr);
 		rptr=rptr->next;
 	}
@@ -1464,8 +1509,6 @@ void do_scanning_stuff() {
 
 void tickf ()
 {
-
-	gettimeofday(&current_timeval,NULL);
 	if (curplayingidx) {
 		/* crude hack to hack around buffering, i know this should be done better */
 		if (curplayingticks==2) do_popen();
@@ -1857,11 +1900,11 @@ void foundfreq(int rxid) {
 	int known;
 	ptr=find_receiver(rxid);
 	if (!ptr) return; /* should never happen :) */
-	known=insert_freq2(&freqdb,REASON_SCANNED,netinfo.mnc,netinfo.mcc,ptr->freq,1,netinfo.ul_freq,netinfo.dl_freq,netinfo.la,netinfo.colour_code,rxid);
+	known=insert_freq2(&freqdb,REASON_SCANNED,netinfo.mnc,netinfo.mcc,ptr->freq,1,netinfo.ul_freq,netinfo.dl_freq,netinfo.la,netinfo.colour_code,rxid,netinfo.crypt);
 
 	strftime(buf,40,"%Y%m%d %H:%M:%S ",localtime(&current_timeval.tv_sec));
 	//	tetraxml_query(netinfo.mcc,netinfo.mnc,tetraxml_doc); 
-	sprintf(tmpstr,"Found %3.4fMHz MCC:%s [%i] MNC: %s [%i] CC:%i LA:%i ",ptr->freq/1000000.0,tetraxml_country,netinfo.mcc,tetraxml_network,netinfo.mnc,netinfo.colour_code,netinfo.la);
+	sprintf(tmpstr,"Found %3.4fMHz MCC:%s [%i] MNC: %s [%i] CC:%i LA:%i %s",ptr->freq/1000000.0,tetraxml_country,netinfo.mcc,tetraxml_network,netinfo.mnc,netinfo.colour_code,netinfo.la,encryption_info[netinfo.crypt]);
 	strcat(buf,tmpstr);
 	if (ptr->freq==netinfo.dl_freq) {
 		sprintf(tmpstr," CONTROL CHANNEL");
@@ -1872,7 +1915,7 @@ void foundfreq(int rxid) {
 	if (!known) {
 		wprintw(statuswin,"NEW: %s\n",buf);
 		if (log_found_freq) appendfile(freqlogfile,buf);
-		system("aplay /usr/share/kismet/wav/packet.wav");
+		//system("aplay /usr/share/kismet/wav/packet.wav");
 	}
 }
 
@@ -1896,6 +1939,7 @@ int parsestat(char *c)
 	uint16_t tmpla;
 	uint8_t tmpcolour_code;
 	uint32_t tmpdlf,tmpulf;
+	int tmpcrypt;
 	int rxid;
 	int callingssi,calledssi;
 	char *sdsbegin;
@@ -1942,6 +1986,13 @@ int parsestat(char *c)
 		return(0);
 	}
 
+	if (cmpfunc(func,"ENCINFO1")) {
+		update_receivers(rxid);
+		update_receiver_encinfo(rxid,getptrint(c,"CRYPT:",10),getptrint(c,"ENC:",16));
+		/* neven log encinfo1 values, because there can be many of these messages */
+		return(0);
+	}
+
 	/* scanning so  far uses only receiver 1, this should be fixed later for better speed */
 	if ((telive_receiver_mode!=TELIVE_RX_NORMAL)&&(rxid!=1)) return(0);
 
@@ -1958,7 +2009,8 @@ int parsestat(char *c)
 		tmpdlf=getptrint(c,"DLF:",10);
 		tmpulf=getptrint(c,"ULF:",10);
 		tmpla=getptrint(c,"LA:",10);
-		insert_freq2(&frequencies,REASON_NETINFO,tmpmnc,tmpmcc,0,0,tmpulf,tmpdlf,tmpla,tmpcolour_code,rxid);
+		tmpcrypt=getptrint(c,"CRYPT:",10);
+		insert_freq2(&frequencies,REASON_NETINFO,tmpmnc,tmpmcc,0,0,tmpulf,tmpdlf,tmpla,tmpcolour_code,rxid,tmpcrypt);
 
 
 		/* when there is a lot of interference sometimes we get bogus info, so we wait until there are 2 consecutive frames with the same info */
@@ -1972,6 +2024,7 @@ int parsestat(char *c)
 		netinfo_tmp.dl_freq=tmpdlf;
 		netinfo_tmp.ul_freq=tmpulf;
 		netinfo_tmp.la=tmpla;
+		netinfo_tmp.crypt=tmpcrypt;
 
 
 		if (sameinfo) {
@@ -1984,6 +2037,7 @@ int parsestat(char *c)
 				netinfo.dl_freq=tmpdlf;
 				netinfo.ul_freq=tmpulf;
 				netinfo.la=tmpla;
+				netinfo.crypt=tmpcrypt;
 				updopis();
 				tmptime=time(0);
 
@@ -2020,7 +2074,7 @@ int parsestat(char *c)
 		tmpulf=getptrint(c,"ULF:",10);
 		tmpla=getptrint(c,"LA:",10);
 		/* TODO: get CC */
-		insert_freq2(&frequencies,REASON_FREQINFO,tmpmnc,tmpmcc,0,0,tmpulf,tmpdlf,tmpla,0,rxid);
+		insert_freq2(&frequencies,REASON_FREQINFO,tmpmnc,tmpmcc,0,0,tmpulf,tmpdlf,tmpla,0,rxid,0);
 
 	}
 	if (cmpfunc(func,"FREQINFO2")) {
@@ -2031,9 +2085,11 @@ int parsestat(char *c)
 		tmpulf=getptrint(c,"ULF:",10);
 		tmpla=getptrint(c,"LA:",10);
 		/* TODO: get CC */
-		insert_freq2(&frequencies,REASON_DLFREQ,tmpmnc,tmpmcc,0,0,tmpulf,tmpdlf,tmpla,0,rxid);
+		insert_freq2(&frequencies,REASON_DLFREQ,tmpmnc,tmpmcc,0,0,tmpulf,tmpdlf,tmpla,0,rxid,0);
 		if (telive_auto_tune) tune_free_receiver(grxml_url,rxid,tmpdlf);
 	}
+
+
 	if (cmpfunc(func,"DSETUPDEC"))
 	{
 		if (usage) {
@@ -2804,6 +2860,9 @@ int main(void)
 	char *c,*d;
 	int len;
 	int tport;
+	struct timeval last_tickf;
+	long timediff;
+
 	//system("resize -s 60 203"); /* this blocks on some xterms, no idea why */
 	if ((s=socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP))==-1)
 		diep("socket");
@@ -2865,9 +2924,7 @@ int main(void)
 		timeout.tv_sec=0;
 		timeout.tv_usec=50*1000; //50ms
 		r=select(nfds,&rfds,0,0,&timeout);
-
-		//timeout
-		if (r==0) tickf();
+		gettimeofday(&current_timeval,NULL);
 
 		if (r==-1) {
 			wprintw(statuswin,"select ret -1\n");
@@ -2924,6 +2981,11 @@ int main(void)
 		} 
 		if (ref) refresh_scr();
 
+		timediff=timeval_subtract_ms(&current_timeval,&last_tickf);
+		if (timediff>50) {
+			tickf();
+			memcpy(&last_tickf,&current_timeval,sizeof(struct timeval));
+		} 
 	}
 	close(s);
 	return 0;
