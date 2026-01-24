@@ -1,3 +1,13 @@
+NOTE: i published an experimental version of telive and supporting software:
+https://github.com/sq5bpf/telive-2/
+
+This features TEA1-4 support (including voice), TEA1 reduced key support.
+And teatime, which can recover this reduced key from on-air traffic.
+
+More info here:
+https://lipkowski.com/2026/01/23/listening-to-tetra-encrypted-communications/
+
+
 telive - Tetra Live Monitor
 (c) 2014-2015 Jacek Lipkowski <sq5bpf@lipkowski.org>
 
