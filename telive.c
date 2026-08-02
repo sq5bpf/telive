@@ -1526,7 +1526,7 @@ void tickf ()
 	}
 	if ((current_timeval.tv_sec-last_10s_event)>9) {
 		/* this gets executed every 10 seconds */
-		timeout_receivers(grxml_url);
+		timeout_receivers();
 		if (receiver_ppm_autocorrect) grxml_autocorrect_ppm(grxml_url); 
 		//if ((freq_changed)&&(displayedwin==freqwin)) display_freq();
 		last_10s_event=current_timeval.tv_sec;

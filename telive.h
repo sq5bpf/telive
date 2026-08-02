@@ -10,6 +10,9 @@ enum tetra_mac_res_addr_type {
 };
 
 void tune_free_receiver(char *url,int src_rxid,uint32_t dlf);
+int tune_grxml_receiver(char *url,int rxid,uint32_t freq,int force);
+int get_scan_range(char *list,int item);
+void timeout_receivers(void);
 
 void grxml_autocorrect_ppm (char *) ;
 void grxml_update_receivers(char *url);

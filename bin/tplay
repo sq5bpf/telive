@@ -1,4 +1,18 @@
 #!/bin/sh
 #play acelp .out files
-cat $* | /tetra/bin/cdecoder /dev/stdin /dev/stdout | /tetra/bin/sdecoder /dev/stdin /dev/stdout | aplay -fS16_LE
+if [ -z "$TETRADIR" ]; then
+	if [ "$(uname -s)" = "Darwin" ]; then
+		TETRADIR=/usr/local/tetra
+	else
+		TETRADIR=/tetra
+	fi
+fi
 
+if command -v aplay >/dev/null 2>&1; then
+	cat "$@" | "$TETRADIR/bin/cdecoder" /dev/stdin /dev/stdout | "$TETRADIR/bin/sdecoder" /dev/stdin /dev/stdout | aplay -fS16_LE
+elif command -v play >/dev/null 2>&1; then
+	cat "$@" | "$TETRADIR/bin/cdecoder" /dev/stdin /dev/stdout | "$TETRADIR/bin/sdecoder" /dev/stdin /dev/stdout | play -q -t raw -r 8000 -e signed-integer -b 16 -c 1 -L -
+else
+	echo "tplay: install alsa-utils (aplay) or SoX (play) for audio output" >&2
+	exit 1
+fi
