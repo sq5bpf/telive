@@ -1,6 +1,13 @@
 CFLAGS=-O0 -g  #please don't remove the -g, it really helps debugging
 CC=gcc
 
+# Match Apple Clang to the architecture reported by the current shell. This is
+# especially important under Rosetta, where the compiler may otherwise select
+# arm64 while pkg-config resolves x86_64 libraries.
+ifeq ($(shell uname -s),Darwin)
+CC=gcc -arch $(shell uname -m)
+endif
+
 default: telive
 
 telive_util.o: telive_util.c telive_util.h
@@ -14,4 +21,3 @@ telive: telive.c telive.h telive_receiver.o telive_util.o
 
 clean:
 	rm telive telive_receiver.o telive_util.o
-

@@ -8,7 +8,7 @@
 # Title: SQ5BPF Tetra live receiver 1ch UDP HEADLESS for
 # Author: Jacek Lipkowski SQ5BPF
 # Description: 1 channel receiver for Telive, with XMLRPC server and UDP output
-# GNU Radio version: 3.10.5.1
+# GNU Radio version: 3.10.12.0
 
 from gnuradio import analog
 from gnuradio import filter
@@ -68,7 +68,7 @@ class telive_1ch_gr310_udp_xmlrpc_headless(gr.top_block):
         )
         self.osmosdr_source_0.set_time_unknown_pps(osmosdr.time_spec_t())
         self.osmosdr_source_0.set_sample_rate(samp_rate)
-        self.osmosdr_source_0.set_center_freq(freq, 0)
+        self.osmosdr_source_0.set_center_freq((freq-xlate_offset1), 0)
         self.osmosdr_source_0.set_freq_corr(ppm_corr, 0)
         self.osmosdr_source_0.set_dc_offset_mode(0, 0)
         self.osmosdr_source_0.set_iq_balance_mode(0, 0)
@@ -81,8 +81,7 @@ class telive_1ch_gr310_udp_xmlrpc_headless(gr.top_block):
         self.network_udp_sink_0 = network.udp_sink(gr.sizeof_gr_complex, 1, udp_dest_addr, (first_port+1), 0, udp_packet_size, False)
         self.mmse_resampler_xx_0 = filter.mmse_resampler_cc(0, (float(float(if_samp_rate)/float(out_sample_rate))))
         self.freq_xlating_fir_filter_xxx_0 = filter.freq_xlating_fir_filter_ccc(first_decim, firdes.low_pass(1, samp_rate, options_low_pass, options_low_pass*0.2), (xlate_offset1+xlate_offset_fine1), samp_rate)
-        self.analog_agc3_xx_0 = analog.agc3_cc((1e-3), (1e-4), 1.0, 1.0, 1)
-        self.analog_agc3_xx_0.set_max_gain(65536)
+        self.analog_agc3_xx_0 = analog.agc3_cc((1e-3), (1e-4), 1.0, 1.0, 1, 65536)
 
 
         ##################################################
@@ -123,6 +122,7 @@ class telive_1ch_gr310_udp_xmlrpc_headless(gr.top_block):
     def set_xlate_offset1(self, xlate_offset1):
         self.xlate_offset1 = xlate_offset1
         self.freq_xlating_fir_filter_xxx_0.set_center_freq((self.xlate_offset1+self.xlate_offset_fine1))
+        self.osmosdr_source_0.set_center_freq((self.freq-self.xlate_offset1), 0)
 
     def get_udp_packet_size(self):
         return self.udp_packet_size
@@ -195,7 +195,7 @@ class telive_1ch_gr310_udp_xmlrpc_headless(gr.top_block):
 
     def set_freq(self, freq):
         self.freq = freq
-        self.osmosdr_source_0.set_center_freq(self.freq, 0)
+        self.osmosdr_source_0.set_center_freq((self.freq-self.xlate_offset1), 0)
 
     def get_first_port(self):
         return self.first_port

@@ -480,7 +480,7 @@ blocks:
     dc_offset_mode7: '0'
     dc_offset_mode8: '0'
     dc_offset_mode9: '0'
-    freq0: freq
+    freq0: freq-xlate_offset1
     freq1: 100e6
     freq10: 100e6
     freq11: 100e6

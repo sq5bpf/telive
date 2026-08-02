@@ -1,8 +1,15 @@
 #!/bin/bash
 #compress new acelp .out files into ogg --sq5bpf
-export PATH=$PATH:/tetra/bin
-TDIR=/tetra/in
-ODIR=/tetra/out
+if [ -z "$TETRADIR" ]; then
+	if [ "$(uname -s)" = "Darwin" ]; then
+		TETRADIR=/usr/local/tetra
+	else
+		TETRADIR=/tetra
+	fi
+fi
+export PATH="$PATH:$TETRADIR/bin"
+TDIR="$TETRADIR/in"
+ODIR="$TETRADIR/out"
 while : ; do
 while read a
 do
@@ -36,4 +43,3 @@ done < <( find $TDIR/ -type f -mmin +2 )
 
 	sleep 60
 	done
-

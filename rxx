@@ -5,15 +5,22 @@
 # sq5bpf
 
 ulimit -c unlimited
-export PATH=$PATH:/tetra/bin
+if [ -z "$TETRADIR" ]; then
+	if [ "$(uname -s)" = "Darwin" ]; then
+		TETRADIR=/usr/local/tetra
+	else
+		TETRADIR=/tetra
+	fi
+fi
+export PATH="$PATH:$TETRADIR/bin"
 
 # TETRA_OUTDIR - directory where to write the recorded ACELP voice files
 # if unset defaults to /tetra/in
-export TETRA_OUTDIR=/tetra/in
+export TETRA_OUTDIR="$TETRADIR/in"
 
 # TETRA_LOGFILE - filename where to write the log.
 # if unset defaults to telive.log
-export TETRA_LOGFILE=/tetra/log/telive.log
+export TETRA_LOGFILE="$TETRADIR/log/telive.log"
 
 # TETRA_PORT - udp port where telive listens for communication from tetra-rx
 # if unset defaults to 7379
@@ -34,7 +41,7 @@ export TETRA_KEYS=m #enable mutessi
 
 # TETRA_KML_FILE - if set, the locations will be written periodically to this 
 # file in KML format
-export TETRA_KML_FILE=/tetra/log/tetra1.kml
+export TETRA_KML_FILE="$TETRADIR/log/tetra1.kml"
 
 # TETRA_KML_INTERVAL - this will set the maximum KML file refresh rate
 # if unset, this will default to 30 seconds
@@ -42,7 +49,7 @@ export TETRA_KML_INTERVAL=3
 
 # TETRA_SSI_DESCRIPTIONS - a file contaning textual descriptions of ssis
 # if unset then no file is used
-#export TETRA_SSI_DESCRIPTIONS=/tetra/ssi_descriptions
+#export TETRA_SSI_DESCRIPTIONS="$TETRADIR/ssi_descriptions"
 
 # TETRA_XMLFILE - a file containing descriptions of MCC and MNC
 # if unset defaults to tetra.xml
@@ -50,7 +57,7 @@ export TETRA_KML_INTERVAL=3
 
 # TETRA_LOCK_FILE - lock file to use between multiple instances 
 # of telive, so that they don't all play at the same time 
-#export TETRA_LOCK_FILE=/tetra/telive_lock
+#export TETRA_LOCK_FILE="$TETRADIR/telive_lock"
 
 #### optional receiver control via the gnuradio xmlrpc server ####
 
@@ -140,4 +147,3 @@ export TETRA_SCAN_LIST="390-395/12.5;420-430/12.5;870-876/12.5;450-470/12.5;915-
 # export TETRA_SCAN_TIMEOUT_SYSINFO=2000
 
 ./telive
-
